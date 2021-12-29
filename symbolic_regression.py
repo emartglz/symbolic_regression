@@ -84,15 +84,16 @@ def random_prog(
         return {"feature_name": features_names[randint(0, len(features_names) - 1)]}
 
 
-def select_random_node(selected, depth, MAX_DEPTH):
+def select_random_node(selected, parent, depth, MAX_DEPTH):
     if "children" not in selected:
-        return (*selected, depth)
+        return (parent, depth - 1)
     # favor nodes near the root
-    if depth > 0 and randint(0, MAX_DEPTH) > depth:
-        return (*selected, depth)
+    if randint(0, MAX_DEPTH) > depth:
+        return (selected, depth)
     child_count = len(selected["children"])
     return select_random_node(
         selected["children"][randint(0, child_count - 1)],
+        selected,
         depth + 1,
         MAX_DEPTH,
     )
@@ -108,10 +109,11 @@ def do_mutate(
     MAX_CONSTANT,
 ):
     offspring = deepcopy(selected)
-    mutate_point, depth = select_random_node(offspring, 0, MAX_DEPTH)
-    print("mutate1", render_prog(mutate_point))
-    mutate_point = random_prog(
-        depth,
+    mutate_point, depth = select_random_node(offspring, None, 0, MAX_DEPTH)
+
+    child_count = len(mutate_point["children"])
+    mutate_point["children"][randint(0, child_count - 1)] = random_prog(
+        depth + 1,
         system_lenght,
         operations,
         features_names,
@@ -119,18 +121,20 @@ def do_mutate(
         CONSTANT_PROBABILITY,
         MAX_CONSTANT,
     )
-    print("mutate2", render_prog(mutate_point))
-    print(render_prog(offspring))
     return offspring
 
 
 # TODO ahora mismo el xover puede darme un arbol con mayor profundidad máxima que MAX_DEPTH
 def do_xover(selected1, selected2, MAX_DEPTH):
     offspring = deepcopy(selected1)
-    xover_point1, _ = select_random_node(offspring, 0, MAX_DEPTH)
-    xover_point2, _ = select_random_node(selected2, 0, MAX_DEPTH)
+    xover_point1, _ = select_random_node(offspring, None, 0, MAX_DEPTH)
+    xover_point2, _ = select_random_node(selected2, None, 0, MAX_DEPTH)
 
-    xover_point1 = xover_point2
+    child_count1 = len(xover_point1["children"])
+    child_count2 = len(xover_point2["children"])
+    xover_point1["children"][randint(0, child_count1 - 1)] = xover_point2["children"][
+        randint(0, child_count2 - 1)
+    ]
     return offspring
 
 
@@ -251,13 +255,6 @@ def symbolic_regression(
             if score < global_best:
                 global_best = score
                 best_prog = prog
-
-            # if (
-            #     "X7" in render_prog(prog)
-            #     and "X2" in render_prog(prog)
-            #     and "X4" in render_prog(prog)
-            # ):
-            print(render_prog(prog))
 
         mean = reduce(lambda a, b: a + b, fitness) / len(fitness)
 
