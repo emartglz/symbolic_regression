@@ -80,7 +80,7 @@ def random_prog(
         }
     else:
         if random() < CONSTANT_PROBABILITY:
-            return {"value": random() * MAX_CONSTANT}
+            return {"value": round(random(), 3) * MAX_CONSTANT}
         return {"feature_name": features_names[randint(0, len(features_names) - 1)]}
 
 
@@ -138,9 +138,11 @@ def do_xover(selected1, selected2, MAX_DEPTH):
     return offspring
 
 
-def get_random_parent(population, fitness, POP_SIZE, TOURNAMENT_SIZE):
+def get_random_parent(population, fitness, TOURNAMENT_SIZE):
     # randomly select population members for the tournament
-    tournament_members = [randint(0, POP_SIZE - 1) for _ in range(TOURNAMENT_SIZE)]
+    tournament_members = [
+        randint(0, len(population) - 1) for _ in range(TOURNAMENT_SIZE)
+    ]
     # select tournament member with best fitness
     member_fitness = [(fitness[i], population[i]) for i in tournament_members]
     return min(member_fitness, key=lambda x: x[0])[1]
@@ -156,12 +158,11 @@ def get_offspring(
     CONSTANT_PROBABILITY,
     MAX_CONSTANT,
     XOVER_PCT,
-    POP_SIZE,
     TOURNAMENT_SIZE,
 ):
-    parent1 = get_random_parent(population, fitness, POP_SIZE, TOURNAMENT_SIZE)
+    parent1 = get_random_parent(population, fitness, TOURNAMENT_SIZE)
     if random() < XOVER_PCT:
-        parent2 = get_random_parent(population, fitness, POP_SIZE, TOURNAMENT_SIZE)
+        parent2 = get_random_parent(population, fitness, TOURNAMENT_SIZE)
         return do_xover(parent1, parent2, MAX_DEPTH)
     else:
         return do_mutate(
@@ -207,6 +208,7 @@ def symbolic_regression(
     XOVER_PCT=0.7,
     REG_STRENGTH=0.5,
     EPSILON=0.001,
+    PROPORTION_OF_BESTS=1 / 3,
 ):
     seed(seed_g)
     feature_lenght = len(X[0])
@@ -259,30 +261,36 @@ def symbolic_regression(
         mean = reduce(lambda a, b: a + b, fitness) / len(fitness)
 
         print(
-            f"Generation: {gen}\nBest Score: {global_best}\nMean score: {mean}\nBest program: {render_prog(best_prog)}\n"
+            f"Generation: {gen}\nBest Score: {global_best}\nMean score: {mean}\nBest program:\n{render_prog(best_prog)}\n"
         )
 
         if global_best < EPSILON:
             break
 
-        population = [
-            get_offspring(
-                population,
-                fitness,
-                system_lenght,
-                operations,
-                features_names,
-                MAX_DEPTH,
-                CONSTANT_PROBABILITY,
-                MAX_CONSTANT,
-                XOVER_PCT,
-                POP_SIZE,
-                TOURNAMENT_SIZE,
+        member_fitness = [(fitness[i], i, population[i]) for i in range(POP_SIZE)]
+        member_fitness.sort()
+
+        best_amount = int(POP_SIZE * PROPORTION_OF_BESTS)
+        population_next_gen = [i[2] for i in member_fitness[:best_amount]]
+        for i in range(best_amount, POP_SIZE):
+            population_next_gen.append(
+                get_offspring(
+                    population,
+                    fitness,
+                    system_lenght,
+                    operations,
+                    features_names,
+                    MAX_DEPTH,
+                    CONSTANT_PROBABILITY,
+                    MAX_CONSTANT,
+                    XOVER_PCT,
+                    TOURNAMENT_SIZE,
+                )
             )
-            for _ in range(POP_SIZE)
-        ]
+
+        population = population_next_gen
 
     print(f"Best score: {global_best}")
-    print(f"Best program: {render_prog(best_prog)}")
+    print(f"Best program:\n{render_prog(best_prog)}")
 
     return render_prog(best_prog)
