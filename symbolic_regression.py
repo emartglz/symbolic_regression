@@ -2,6 +2,9 @@ import operator
 from random import randint, random, seed
 from copy import deepcopy
 from functools import reduce
+from scipy.optimize import least_squares
+import numpy as np
+from pprint import pprint
 
 
 def render_prog(node):
@@ -18,6 +21,16 @@ def evaluate(node, row):
             return row[node["feature_name"]]
         return node["value"]
     return node["func"](*[evaluate(c, row) for c in node["children"]])
+
+
+def evaluate_least_squares(theta, node, row):
+    if "children" not in node:
+        if "feature_name" in node:
+            return row[node["feature_name"]]
+        return theta[int(node["value"])]
+    return node["func"](
+        *[evaluate_least_squares(theta, c, row) for c in node["children"]]
+    )
 
 
 def safe_div(a, b):
@@ -80,7 +93,7 @@ def random_prog(
         }
     else:
         if random() < CONSTANT_PROBABILITY:
-            return {"value": round(random(), 3) * MAX_CONSTANT}
+            return {"value": None}
         return {"feature_name": features_names[randint(0, len(features_names) - 1)]}
 
 
@@ -117,9 +130,7 @@ def do_mutate(
 
     if "children" not in mutate_point["children"][children]:
         if random() < CONSTANT_PROBABILITY:
-            mutate_point["children"][children] = {
-                "value": round(random(), 3) * MAX_CONSTANT
-            }
+            mutate_point["children"][children] = {"value": None}
         mutate_point["children"][children] = {
             "feature_name": features_names[randint(0, len(features_names) - 1)]
         }
@@ -179,23 +190,51 @@ def get_offspring(
     parent1 = get_random_parent(population, fitness, TOURNAMENT_SIZE)
     if random() < XOVER_PCT:
         parent2 = get_random_parent(population, fitness, TOURNAMENT_SIZE)
-        return do_xover(parent1, parent2, MAX_DEPTH)
+        return constant_name_assign(do_xover(parent1, parent2, MAX_DEPTH), 0)[0]
     else:
-        return do_mutate(
-            parent1,
-            system_lenght,
-            operations,
-            features_names,
-            MAX_DEPTH,
-            CONSTANT_PROBABILITY,
-            MAX_CONSTANT,
-        )
+        return constant_name_assign(
+            do_mutate(
+                parent1,
+                system_lenght,
+                operations,
+                features_names,
+                MAX_DEPTH,
+                CONSTANT_PROBABILITY,
+                MAX_CONSTANT,
+            ),
+            0,
+        )[0]
 
 
 def node_count(x):
     if "children" not in x:
         return 1
     return sum([node_count(c) for c in x["children"]])
+
+
+def constant_count(x):
+    if "children" not in x:
+        if "value" in x:
+            return 1
+        return 0
+    return sum([constant_count(c) for c in x["children"]])
+
+
+def constant_name_assign(selected, number=0):
+    offspring = deepcopy(selected)
+    if "children" not in offspring:
+        if "value" in offspring:
+            offspring["value"] = str(number)
+            number += 1
+        return offspring, number
+
+    child_number = len(offspring["children"])
+    for c in range(child_number):
+        offspring["children"][c], number = constant_name_assign(
+            offspring["children"][c], number
+        )
+
+    return offspring, number
 
 
 def compute_fitness(program, prediction, target, REG_STRENGTH):
@@ -209,6 +248,11 @@ def compute_fitness(program, prediction, target, REG_STRENGTH):
 
     penalty = node_count(program) ** REG_STRENGTH
     return mse * penalty
+
+
+def fun(theta, prog, ts, ys, REG_STRENGTH):
+    prediction = [evaluate_least_squares(theta, prog, t) for t in ts]
+    return compute_fitness(prog, prediction, ys, REG_STRENGTH)
 
 
 def symbolic_regression(
@@ -251,15 +295,17 @@ def symbolic_regression(
     )
 
     population = [
-        random_prog(
-            0,
-            system_lenght,
-            operations,
-            features_names,
-            MAX_DEPTH,
-            CONSTANT_PROBABILITY,
-            MAX_CONSTANT,
-        )
+        constant_name_assign(
+            random_prog(
+                0,
+                system_lenght,
+                operations,
+                features_names,
+                MAX_DEPTH,
+                CONSTANT_PROBABILITY,
+                MAX_CONSTANT,
+            )
+        )[0]
         for _ in range(POP_SIZE)
     ]
 
@@ -267,17 +313,44 @@ def symbolic_regression(
     for gen in range(MAX_GENERATIONS):
         fitness = []
         for prog in population:
-            prediction = [evaluate(prog, Xi) for Xi in X]
-            score = compute_fitness(prog, prediction, target, REG_STRENGTH)
+            constant = constant_count(prog)
+
+            if constant != 0:
+                prediction = least_squares(
+                    fun,
+                    [random() * MAX_CONSTANT for _ in range(constant)],
+                    bounds=(0, MAX_CONSTANT),
+                    kwargs={
+                        "prog": prog,
+                        "ts": X,
+                        "ys": target,
+                        "REG_STRENGTH": REG_STRENGTH,
+                    },
+                )
+
+                score = prediction.cost
+
+                # print(score)
+                # print(constant_count(prog), prediction.x)
+                # print(render_prog(prog))
+
+            else:
+                prediction = [evaluate(prog, Xi) for Xi in X]
+                score = compute_fitness(prog, prediction, target, REG_STRENGTH)
+
+                # print(score)
+                # print(render_prog(prog))
+
             fitness.append(score)
             if score < global_best:
                 global_best = score
                 best_prog = prog
+                best_const = prediction.x
 
         mean = reduce(lambda a, b: a + b, fitness) / len(fitness)
 
         print(
-            f"Generation: {gen}\nBest Score: {global_best}\nMean score: {mean}\nBest program:\n{render_prog(best_prog)}\n"
+            f"Generation: {gen}\nBest Score: {global_best}\nMean score: {mean}\nBest program:\n{render_prog(best_prog)}\nBest Constant:\n{best_const}\n"
         )
 
         if global_best < EPSILON:
@@ -308,5 +381,6 @@ def symbolic_regression(
 
     print(f"Best score: {global_best}")
     print(f"Best program:\n{render_prog(best_prog)}")
+    print(f"Best Constant: {best_const}")
 
     return render_prog(best_prog)

@@ -64,10 +64,10 @@ def main():
     print(
         symbolic_regression(
             X_samples,
-            ode1,
+            ode,
             seed_g=0,
-            MAX_GENERATIONS=500,
-            POP_SIZE=5000,
+            MAX_GENERATIONS=20,
+            POP_SIZE=300,
             MAX_CONSTANT=1,
             TOURNAMENT_SIZE=30,
             XOVER_PCT=0.7,
