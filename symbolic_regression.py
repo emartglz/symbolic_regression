@@ -112,15 +112,31 @@ def do_mutate(
     mutate_point, depth = select_random_node(offspring, None, 0, MAX_DEPTH)
 
     child_count = len(mutate_point["children"])
-    mutate_point["children"][randint(0, child_count - 1)] = random_prog(
-        depth + 1,
-        system_lenght,
-        operations,
-        features_names,
-        MAX_DEPTH,
-        CONSTANT_PROBABILITY,
-        MAX_CONSTANT,
-    )
+
+    children = randint(0, child_count - 1)
+
+    if "children" not in mutate_point["children"][children]:
+        if random() < CONSTANT_PROBABILITY:
+            mutate_point["children"][children] = {
+                "value": round(random(), 3) * MAX_CONSTANT
+            }
+        mutate_point["children"][children] = {
+            "feature_name": features_names[randint(0, len(features_names) - 1)]
+        }
+    else:
+        possibles_func = [
+            i
+            for i in filter(
+                lambda x: x["arg_count"]
+                == len(mutate_point["children"][children]["children"]),
+                operations,
+            )
+        ]
+        op = possibles_func[randint(0, len(possibles_func) - 1)]
+
+        mutate_point["children"][children]["func"] = op["func"]
+        mutate_point["children"][children]["format_str"] = op["format_str"]
+
     return offspring
 
 
