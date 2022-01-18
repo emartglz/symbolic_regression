@@ -119,7 +119,11 @@ def do_mutate(
     features_names,
     MAX_DEPTH,
     CONSTANT_PROBABILITY,
+    VARIABLE_PROBABILITY,
     MAX_CONSTANT,
+    CHANGE_OPERATION_PROBABILITY,
+    DELETE_NODE_PROBABILITY,
+    ADD_OPERATION_PROBABILITY,
 ):
     offspring = deepcopy(selected)
     mutate_point, depth = select_random_node(offspring, None, 0, MAX_DEPTH)
@@ -129,11 +133,25 @@ def do_mutate(
     children = randint(0, child_count - 1)
 
     if "children" not in mutate_point["children"][children]:
-        if random() < CONSTANT_PROBABILITY:
+        r = random()
+        # add constant
+        if r < CONSTANT_PROBABILITY:
             mutate_point["children"][children] = {"value": None}
-        mutate_point["children"][children] = {
-            "feature_name": features_names[randint(0, len(features_names) - 1)]
-        }
+        r -= CONSTANT_PROBABILITY
+        if r < VARIABLE_PROBABILITY:
+            mutate_point["children"][children] = {
+                "feature_name": features_names[randint(0, len(features_names) - 1)]
+            }
+        r -= VARIABLE_PROBABILITY
+        mutate_point["children"][children] = random_prog(
+            depth + 1,
+            system_lenght,
+            operations,
+            features_names,
+            MAX_DEPTH,
+            CONSTANT_PROBABILITY,
+            MAX_CONSTANT,
+        )
     else:
         possibles_func = [
             i
@@ -145,8 +163,35 @@ def do_mutate(
         ]
         op = possibles_func[randint(0, len(possibles_func) - 1)]
 
-        mutate_point["children"][children]["func"] = op["func"]
-        mutate_point["children"][children]["format_str"] = op["format_str"]
+        r = random()
+
+        # Change operation same "aridad"
+        if r < CHANGE_OPERATION_PROBABILITY:
+            mutate_point["children"][children]["func"] = op["func"]
+            mutate_point["children"][children]["format_str"] = op["format_str"]
+        r -= CHANGE_OPERATION_PROBABILITY
+        # Delete node
+        if r < DELETE_NODE_PROBABILITY:
+            mutate_point["children"][children] = random_prog(
+                depth + 1,
+                system_lenght,
+                operations,
+                features_names,
+                MAX_DEPTH,
+                CONSTANT_PROBABILITY,
+                MAX_CONSTANT,
+            )
+        r -= DELETE_NODE_PROBABILITY
+        # Add operation
+        r_operation = operations[randint(0, len(operations) - 1)]
+        node = deepcopy(mutate_point["children"][children])
+
+        mutate_point["children"][children]["children"] = [
+            {"value": None} for _ in range(r_operation["arg_count"])
+        ]
+        mutate_point["children"][children]["children"][-1] = node
+        mutate_point["children"][children]["func"] = r_operation["func"]
+        mutate_point["children"][children]["format_str"] = r_operation["format_str"]
 
     return offspring
 
@@ -183,7 +228,11 @@ def get_offspring(
     features_names,
     MAX_DEPTH,
     CONSTANT_PROBABILITY,
+    VARIABLE_PROBABILITY,
     MAX_CONSTANT,
+    CHANGE_OPERATION_PROBABILITY,
+    DELETE_NODE_PROBABILITY,
+    ADD_OPERATION_PROBABILITY,
     XOVER_PCT,
     TOURNAMENT_SIZE,
 ):
@@ -200,7 +249,11 @@ def get_offspring(
                 features_names,
                 MAX_DEPTH,
                 CONSTANT_PROBABILITY,
+                VARIABLE_PROBABILITY,
                 MAX_CONSTANT,
+                CHANGE_OPERATION_PROBABILITY,
+                DELETE_NODE_PROBABILITY,
+                ADD_OPERATION_PROBABILITY,
             ),
             0,
         )[0]
@@ -263,10 +316,14 @@ def symbolic_regression(
     MAX_DEPTH=10,
     POP_SIZE=300,
     CONSTANT_PROBABILITY=0.5,
+    VARIABLE_PROBABILITY=0.3,
     MAX_CONSTANT=100,
+    CHANGE_OPERATION_PROBABILITY=0.3,
+    DELETE_NODE_PROBABILITY=0.3,
+    ADD_OPERATION_PROBABILITY=0.4,
     TOURNAMENT_SIZE=3,
     XOVER_PCT=0.7,
-    REG_STRENGTH=0.5,
+    REG_STRENGTH=2,
     EPSILON=0.001,
     PROPORTION_OF_BESTS=1 / 3,
 ):
@@ -334,6 +391,11 @@ def symbolic_regression(
                 # print(constant_count(prog), prediction.x)
                 # print(render_prog(prog))
 
+                if score < global_best:
+                    global_best = score
+                    best_prog = prog
+                    best_const = prediction.x
+
             else:
                 prediction = [evaluate(prog, Xi) for Xi in X]
                 score = compute_fitness(prog, prediction, target, REG_STRENGTH)
@@ -341,11 +403,12 @@ def symbolic_regression(
                 # print(score)
                 # print(render_prog(prog))
 
+                if score < global_best:
+                    global_best = score
+                    best_prog = prog
+                    best_const = []
+
             fitness.append(score)
-            if score < global_best:
-                global_best = score
-                best_prog = prog
-                best_const = prediction.x
 
         mean = reduce(lambda a, b: a + b, fitness) / len(fitness)
 
@@ -371,7 +434,11 @@ def symbolic_regression(
                     features_names,
                     MAX_DEPTH,
                     CONSTANT_PROBABILITY,
+                    VARIABLE_PROBABILITY,
                     MAX_CONSTANT,
+                    CHANGE_OPERATION_PROBABILITY,
+                    DELETE_NODE_PROBABILITY,
+                    ADD_OPERATION_PROBABILITY,
                     XOVER_PCT,
                     TOURNAMENT_SIZE,
                 )
