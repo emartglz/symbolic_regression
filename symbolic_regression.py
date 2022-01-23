@@ -142,16 +142,17 @@ def do_mutate(
             mutate_point["children"][children] = {
                 "feature_name": features_names[randint(0, len(features_names) - 1)]
             }
-        r -= VARIABLE_PROBABILITY
-        mutate_point["children"][children] = random_prog(
-            depth + 1,
-            system_lenght,
-            operations,
-            features_names,
-            MAX_DEPTH,
-            CONSTANT_PROBABILITY,
-            MAX_CONSTANT,
-        )
+        else:
+            r -= VARIABLE_PROBABILITY
+            mutate_point["children"][children] = random_prog(
+                depth + 1,
+                system_lenght,
+                operations,
+                features_names,
+                MAX_DEPTH,
+                CONSTANT_PROBABILITY,
+                MAX_CONSTANT,
+            )
     else:
         possibles_func = [
             i
@@ -172,26 +173,38 @@ def do_mutate(
         r -= CHANGE_OPERATION_PROBABILITY
         # Delete node
         if r < DELETE_NODE_PROBABILITY:
-            mutate_point["children"][children] = random_prog(
-                depth + 1,
-                system_lenght,
-                operations,
-                features_names,
-                MAX_DEPTH,
-                CONSTANT_PROBABILITY,
-                MAX_CONSTANT,
-            )
-        r -= DELETE_NODE_PROBABILITY
-        # Add operation
-        r_operation = operations[randint(0, len(operations) - 1)]
-        node = deepcopy(mutate_point["children"][children])
+            r2 = random()
+            # add constant
+            if r2 < CONSTANT_PROBABILITY:
+                mutate_point["children"][children] = {"value": None}
+            r2 -= CONSTANT_PROBABILITY
+            if r2 < VARIABLE_PROBABILITY:
+                mutate_point["children"][children] = {
+                    "feature_name": features_names[randint(0, len(features_names) - 1)]
+                }
+            else:
+                r2 -= VARIABLE_PROBABILITY
+                mutate_point["children"][children] = random_prog(
+                    depth + 1,
+                    system_lenght,
+                    operations,
+                    features_names,
+                    MAX_DEPTH,
+                    CONSTANT_PROBABILITY,
+                    MAX_CONSTANT,
+                )
+        else:
+            r -= DELETE_NODE_PROBABILITY
+            # Add operation
+            r_operation = operations[randint(0, len(operations) - 1)]
+            node = deepcopy(mutate_point["children"][children])
 
-        mutate_point["children"][children]["children"] = [
-            {"value": None} for _ in range(r_operation["arg_count"])
-        ]
-        mutate_point["children"][children]["children"][-1] = node
-        mutate_point["children"][children]["func"] = r_operation["func"]
-        mutate_point["children"][children]["format_str"] = r_operation["format_str"]
+            mutate_point["children"][children]["children"] = [
+                {"value": None} for _ in range(r_operation["arg_count"])
+            ]
+            mutate_point["children"][children]["children"][-1] = node
+            mutate_point["children"][children]["func"] = r_operation["func"]
+            mutate_point["children"][children]["format_str"] = r_operation["format_str"]
 
     return offspring
 
@@ -299,7 +312,8 @@ def compute_fitness(program, prediction, target, REG_STRENGTH):
         mse += mse_2 / len(prediction[i])
     mse /= len(prediction)
 
-    penalty = node_count(program) ** REG_STRENGTH
+    # penalty = node_count(program) ** REG_STRENGTH
+    penalty = 1
     return mse * penalty
 
 
@@ -373,9 +387,10 @@ def symbolic_regression(
             constant = constant_count(prog)
 
             if constant != 0:
+                constant_ini = [random() * MAX_CONSTANT for _ in range(constant)]
                 prediction = least_squares(
                     fun,
-                    [random() * MAX_CONSTANT for _ in range(constant)],
+                    constant_ini,
                     bounds=(0, MAX_CONSTANT),
                     kwargs={
                         "prog": prog,

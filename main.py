@@ -66,10 +66,10 @@ def main():
             X_samples,
             ode,
             seed_g=0,
-            MAX_GENERATIONS=20,
-            POP_SIZE=300,
+            MAX_GENERATIONS=100,
+            POP_SIZE=20,
             MAX_CONSTANT=1,
-            TOURNAMENT_SIZE=30,
+            TOURNAMENT_SIZE=5,
             XOVER_PCT=0.7,
             MAX_DEPTH=5,
         )
