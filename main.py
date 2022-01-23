@@ -66,12 +66,13 @@ def main():
             X_samples,
             ode,
             seed_g=0,
-            MAX_GENERATIONS=100,
-            POP_SIZE=20,
+            MAX_GENERATIONS=1000,
+            N_GENERATION_OPTIMIZE=10,
+            POP_SIZE=1000,
             MAX_CONSTANT=1,
-            TOURNAMENT_SIZE=5,
-            XOVER_PCT=0.7,
-            MAX_DEPTH=5,
+            TOURNAMENT_SIZE=50,
+            XOVER_PCT=0.5,
+            MAX_DEPTH=7,
         )
     )
 

@@ -5,13 +5,17 @@ from functools import reduce
 from scipy.optimize import least_squares
 import numpy as np
 from pprint import pprint
+from math import *
 
 
 def render_prog(node):
     if "children" not in node:
         if "feature_name" in node:
             return node["feature_name"]
-        return node["value"]
+        if "value" in node:
+            return node["value"]
+        if "constant" in node:
+            return f"C{node['constant']}"
     return node["format_str"].format(*[render_prog(c) for c in node["children"]])
 
 
@@ -27,7 +31,10 @@ def evaluate_least_squares(theta, node, row):
     if "children" not in node:
         if "feature_name" in node:
             return row[node["feature_name"]]
-        return theta[int(node["value"])]
+        if "constant" in node:
+            return theta[node["constant"]]
+        if "value" in node:
+            return node["value"]
     return node["func"](
         *[evaluate_least_squares(theta, c, row) for c in node["children"]]
     )
@@ -93,7 +100,7 @@ def random_prog(
         }
     else:
         if random() < CONSTANT_PROBABILITY:
-            return {"value": None}
+            return {"value": random() * MAX_CONSTANT}
         return {"feature_name": features_names[randint(0, len(features_names) - 1)]}
 
 
@@ -132,18 +139,35 @@ def do_mutate(
 
     children = randint(0, child_count - 1)
 
+    # children is leaf
     if "children" not in mutate_point["children"][children]:
         r = random()
         # add constant
         if r < CONSTANT_PROBABILITY:
-            mutate_point["children"][children] = {"value": None}
-        r -= CONSTANT_PROBABILITY
-        if r < VARIABLE_PROBABILITY:
+            # already a value in child, mutate same value
+            if "value" in mutate_point["children"][children]:
+                negative = random() > 0.5
+                if negative:
+                    mutate_point["children"][children]["value"] -= (
+                        random() * mutate_point["children"][children]["value"]
+                    )
+                else:
+                    mutate_point["children"][children]["value"] = min(
+                        MAX_CONSTANT,
+                        mutate_point["children"][children]["value"]
+                        + (random() * mutate_point["children"][children]["value"]),
+                    )
+            else:
+                mutate_point["children"][children] = {"value": random() * MAX_CONSTANT}
+
+        # add variable
+        elif r < CONSTANT_PROBABILITY + VARIABLE_PROBABILITY:
             mutate_point["children"][children] = {
                 "feature_name": features_names[randint(0, len(features_names) - 1)]
             }
+
+        # add program
         else:
-            r -= VARIABLE_PROBABILITY
             mutate_point["children"][children] = random_prog(
                 depth + 1,
                 system_lenght,
@@ -153,37 +177,38 @@ def do_mutate(
                 CONSTANT_PROBABILITY,
                 MAX_CONSTANT,
             )
+
+    # children is function
     else:
-        possibles_func = [
-            i
-            for i in filter(
-                lambda x: x["arg_count"]
-                == len(mutate_point["children"][children]["children"]),
-                operations,
-            )
-        ]
-        op = possibles_func[randint(0, len(possibles_func) - 1)]
-
         r = random()
-
         # Change operation same "aridad"
         if r < CHANGE_OPERATION_PROBABILITY:
+            possibles_func = [
+                i
+                for i in filter(
+                    lambda x: x["arg_count"]
+                    == len(mutate_point["children"][children]["children"]),
+                    operations,
+                )
+            ]
+            op = possibles_func[randint(0, len(possibles_func) - 1)]
+
             mutate_point["children"][children]["func"] = op["func"]
             mutate_point["children"][children]["format_str"] = op["format_str"]
-        r -= CHANGE_OPERATION_PROBABILITY
+
         # Delete node
-        if r < DELETE_NODE_PROBABILITY:
+        if r < CHANGE_OPERATION_PROBABILITY + DELETE_NODE_PROBABILITY:
             r2 = random()
             # add constant
             if r2 < CONSTANT_PROBABILITY:
-                mutate_point["children"][children] = {"value": None}
-            r2 -= CONSTANT_PROBABILITY
-            if r2 < VARIABLE_PROBABILITY:
+                mutate_point["children"][children] = {"value": random() * MAX_CONSTANT}
+            # add variable
+            if r2 < CONSTANT_PROBABILITY + VARIABLE_PROBABILITY:
                 mutate_point["children"][children] = {
                     "feature_name": features_names[randint(0, len(features_names) - 1)]
                 }
+            # add new function
             else:
-                r2 -= VARIABLE_PROBABILITY
                 mutate_point["children"][children] = random_prog(
                     depth + 1,
                     system_lenght,
@@ -193,14 +218,19 @@ def do_mutate(
                     CONSTANT_PROBABILITY,
                     MAX_CONSTANT,
                 )
+
+        # Add operation using same structure
         else:
-            r -= DELETE_NODE_PROBABILITY
-            # Add operation
             r_operation = operations[randint(0, len(operations) - 1)]
             node = deepcopy(mutate_point["children"][children])
 
             mutate_point["children"][children]["children"] = [
-                {"value": None} for _ in range(r_operation["arg_count"])
+                {"value": random() * MAX_CONSTANT}
+                if random() < CONSTANT_PROBABILITY
+                else {
+                    "feature_name": features_names[randint(0, len(features_names) - 1)]
+                }
+                for _ in range(r_operation["arg_count"])
             ]
             mutate_point["children"][children]["children"][-1] = node
             mutate_point["children"][children]["func"] = r_operation["func"]
@@ -252,24 +282,21 @@ def get_offspring(
     parent1 = get_random_parent(population, fitness, TOURNAMENT_SIZE)
     if random() < XOVER_PCT:
         parent2 = get_random_parent(population, fitness, TOURNAMENT_SIZE)
-        return constant_name_assign(do_xover(parent1, parent2, MAX_DEPTH), 0)[0]
+        return do_xover(parent1, parent2, MAX_DEPTH)
     else:
-        return constant_name_assign(
-            do_mutate(
-                parent1,
-                system_lenght,
-                operations,
-                features_names,
-                MAX_DEPTH,
-                CONSTANT_PROBABILITY,
-                VARIABLE_PROBABILITY,
-                MAX_CONSTANT,
-                CHANGE_OPERATION_PROBABILITY,
-                DELETE_NODE_PROBABILITY,
-                ADD_OPERATION_PROBABILITY,
-            ),
-            0,
-        )[0]
+        return do_mutate(
+            parent1,
+            system_lenght,
+            operations,
+            features_names,
+            MAX_DEPTH,
+            CONSTANT_PROBABILITY,
+            VARIABLE_PROBABILITY,
+            MAX_CONSTANT,
+            CHANGE_OPERATION_PROBABILITY,
+            DELETE_NODE_PROBABILITY,
+            ADD_OPERATION_PROBABILITY,
+        )
 
 
 def node_count(x):
@@ -280,27 +307,44 @@ def node_count(x):
 
 def constant_count(x):
     if "children" not in x:
-        if "value" in x:
+        if "constant" in x:
             return 1
         return 0
     return sum([constant_count(c) for c in x["children"]])
 
 
-def constant_name_assign(selected, number=0):
+def constant_name_assign(selected, number=0, constant=[]):
     offspring = deepcopy(selected)
     if "children" not in offspring:
         if "value" in offspring:
-            offspring["value"] = str(number)
+            offspring["constant"] = number
+            constant.append(offspring.pop("value"))
             number += 1
-        return offspring, number
+        return offspring, number, constant
 
     child_number = len(offspring["children"])
     for c in range(child_number):
-        offspring["children"][c], number = constant_name_assign(
-            offspring["children"][c], number
+        offspring["children"][c], number, constant = constant_name_assign(
+            offspring["children"][c], number, constant
         )
 
-    return offspring, number
+    return offspring, number, constant
+
+
+def constant_value_assign(selected, constants):
+    offspring = deepcopy(selected)
+    if "children" not in offspring:
+        if "constant" in offspring:
+            offspring["value"] = constants[offspring.pop("constant")]
+        return offspring
+
+    child_number = len(offspring["children"])
+    for c in range(child_number):
+        offspring["children"][c] = constant_value_assign(
+            offspring["children"][c], constants
+        )
+
+    return offspring
 
 
 def compute_fitness(program, prediction, target, REG_STRENGTH):
@@ -312,8 +356,8 @@ def compute_fitness(program, prediction, target, REG_STRENGTH):
         mse += mse_2 / len(prediction[i])
     mse /= len(prediction)
 
-    # penalty = node_count(program) ** REG_STRENGTH
-    penalty = 1
+    penalty = max(1, log(node_count(program), REG_STRENGTH))
+    # penalty = 1
     return mse * penalty
 
 
@@ -326,10 +370,11 @@ def symbolic_regression(
     X,
     target,
     MAX_GENERATIONS=10,
+    N_GENERATION_OPTIMIZE=3,
     seed_g=random(),
     MAX_DEPTH=10,
     POP_SIZE=300,
-    CONSTANT_PROBABILITY=0.5,
+    CONSTANT_PROBABILITY=0.3,
     VARIABLE_PROBABILITY=0.3,
     MAX_CONSTANT=100,
     CHANGE_OPERATION_PROBABILITY=0.3,
@@ -337,7 +382,7 @@ def symbolic_regression(
     ADD_OPERATION_PROBABILITY=0.4,
     TOURNAMENT_SIZE=3,
     XOVER_PCT=0.7,
-    REG_STRENGTH=2,
+    REG_STRENGTH=5,
     EPSILON=0.001,
     PROPORTION_OF_BESTS=1 / 3,
 ):
@@ -366,69 +411,63 @@ def symbolic_regression(
     )
 
     population = [
-        constant_name_assign(
-            random_prog(
-                0,
-                system_lenght,
-                operations,
-                features_names,
-                MAX_DEPTH,
-                CONSTANT_PROBABILITY,
-                MAX_CONSTANT,
-            )
-        )[0]
+        random_prog(
+            0,
+            system_lenght,
+            operations,
+            features_names,
+            MAX_DEPTH,
+            CONSTANT_PROBABILITY,
+            MAX_CONSTANT,
+        )
         for _ in range(POP_SIZE)
     ]
 
     global_best = float("inf")
     for gen in range(MAX_GENERATIONS):
         fitness = []
-        for prog in population:
-            constant = constant_count(prog)
+        for i_prog, prog in enumerate(population):
+            print(f"{i_prog + 1}/{POP_SIZE}", end="\r")
 
-            if constant != 0:
-                constant_ini = [random() * MAX_CONSTANT for _ in range(constant)]
-                prediction = least_squares(
-                    fun,
-                    constant_ini,
-                    bounds=(0, MAX_CONSTANT),
-                    kwargs={
-                        "prog": prog,
-                        "ts": X,
-                        "ys": target,
-                        "REG_STRENGTH": REG_STRENGTH,
-                    },
-                )
+            optimize = False
+            if gen % N_GENERATION_OPTIMIZE == 0:
+                prog_const, constant, constant_ini = constant_name_assign(prog, 0, [])
 
-                score = prediction.cost
+                if constant != 0:
+                    optimize = True
+                    prediction = least_squares(
+                        fun,
+                        constant_ini,
+                        bounds=(0, MAX_CONSTANT),
+                        kwargs={
+                            "prog": prog_const,
+                            "ts": X,
+                            "ys": target,
+                            "REG_STRENGTH": REG_STRENGTH,
+                        },
+                    )
 
-                # print(score)
-                # print(constant_count(prog), prediction.x)
-                # print(render_prog(prog))
+                    score = prediction.cost
 
-                if score < global_best:
-                    global_best = score
-                    best_prog = prog
-                    best_const = prediction.x
+                    prog = constant_value_assign(prog_const, prediction.x)
 
-            else:
+            if not optimize:
                 prediction = [evaluate(prog, Xi) for Xi in X]
                 score = compute_fitness(prog, prediction, target, REG_STRENGTH)
 
-                # print(score)
-                # print(render_prog(prog))
+            # print(score, optimize)
+            # print(render_prog(prog))
 
-                if score < global_best:
-                    global_best = score
-                    best_prog = prog
-                    best_const = []
+            if score < global_best:
+                global_best = score
+                best_prog = prog
 
             fitness.append(score)
 
         mean = reduce(lambda a, b: a + b, fitness) / len(fitness)
 
         print(
-            f"Generation: {gen}\nBest Score: {global_best}\nMean score: {mean}\nBest program:\n{render_prog(best_prog)}\nBest Constant:\n{best_const}\n"
+            f"Generation: {gen}\nBest Score: {global_best}\nMean score: {mean}\nBest program:\n{render_prog(best_prog)}\n"
         )
 
         if global_best < EPSILON:
@@ -463,6 +502,5 @@ def symbolic_regression(
 
     print(f"Best score: {global_best}")
     print(f"Best program:\n{render_prog(best_prog)}")
-    print(f"Best Constant: {best_const}")
 
     return render_prog(best_prog)
