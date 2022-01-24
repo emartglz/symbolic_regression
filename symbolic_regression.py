@@ -108,7 +108,10 @@ def select_random_node(selected, parent, depth, MAX_DEPTH):
     if "children" not in selected:
         return (parent, depth - 1)
     # favor nodes near the root
-    if randint(0, MAX_DEPTH) > depth:
+    # if randint(0, MAX_DEPTH) >= depth:
+
+    # completly random
+    if random() <= 0.5:
         return (selected, depth)
     child_count = len(selected["children"])
     return select_random_node(
@@ -142,41 +145,37 @@ def do_mutate(
     # children is leaf
     if "children" not in mutate_point["children"][children]:
         r = random()
-        # add constant
-        if r < CONSTANT_PROBABILITY:
-            # already a value in child, mutate same value
-            if "value" in mutate_point["children"][children]:
-                negative = random() > 0.5
-                if negative:
-                    mutate_point["children"][children]["value"] -= (
-                        random() * mutate_point["children"][children]["value"]
-                    )
-                else:
-                    mutate_point["children"][children]["value"] = min(
-                        MAX_CONSTANT,
-                        mutate_point["children"][children]["value"]
-                        + (random() * mutate_point["children"][children]["value"]),
-                    )
-            else:
-                mutate_point["children"][children] = {"value": random() * MAX_CONSTANT}
 
         # add variable
-        elif r < CONSTANT_PROBABILITY + VARIABLE_PROBABILITY:
+        if r < VARIABLE_PROBABILITY:
             mutate_point["children"][children] = {
                 "feature_name": features_names[randint(0, len(features_names) - 1)]
             }
 
         # add program
         else:
-            mutate_point["children"][children] = random_prog(
+            rp = random_prog(
                 depth + 1,
                 system_lenght,
                 operations,
                 features_names,
-                MAX_DEPTH,
+                min(MAX_DEPTH, depth + 2),
                 CONSTANT_PROBABILITY,
                 MAX_CONSTANT,
             )
+
+            if "value" in mutate_point["children"][children]:
+                if "children" in rp:
+                    rp["children"][0] = mutate_point["children"][children]
+                else:
+                    if "value" in rp:
+                        rp = mutate_point["children"][children]
+
+            elif "feature_name" in mutate_point["children"][children]:
+                if "children" in rp:
+                    rp["children"][0] = mutate_point["children"][children]
+
+            mutate_point["children"][children] = rp
 
     # children is function
     else:
@@ -198,26 +197,15 @@ def do_mutate(
 
         # Delete node
         if r < CHANGE_OPERATION_PROBABILITY + DELETE_NODE_PROBABILITY:
-            r2 = random()
-            # add constant
-            if r2 < CONSTANT_PROBABILITY:
-                mutate_point["children"][children] = {"value": random() * MAX_CONSTANT}
-            # add variable
-            if r2 < CONSTANT_PROBABILITY + VARIABLE_PROBABILITY:
-                mutate_point["children"][children] = {
-                    "feature_name": features_names[randint(0, len(features_names) - 1)]
-                }
-            # add new function
-            else:
-                mutate_point["children"][children] = random_prog(
-                    depth + 1,
-                    system_lenght,
-                    operations,
-                    features_names,
-                    MAX_DEPTH,
-                    CONSTANT_PROBABILITY,
-                    MAX_CONSTANT,
-                )
+            mutate_point["children"][children] = random_prog(
+                depth + 1,
+                system_lenght,
+                operations,
+                features_names,
+                MAX_DEPTH,
+                CONSTANT_PROBABILITY,
+                MAX_CONSTANT,
+            )
 
         # Add operation using same structure
         else:
@@ -225,11 +213,15 @@ def do_mutate(
             node = deepcopy(mutate_point["children"][children])
 
             mutate_point["children"][children]["children"] = [
-                {"value": random() * MAX_CONSTANT}
-                if random() < CONSTANT_PROBABILITY
-                else {
-                    "feature_name": features_names[randint(0, len(features_names) - 1)]
-                }
+                random_prog(
+                    depth + 1,
+                    system_lenght,
+                    operations,
+                    features_names,
+                    min(MAX_DEPTH, depth + 2),
+                    CONSTANT_PROBABILITY,
+                    MAX_CONSTANT,
+                )
                 for _ in range(r_operation["arg_count"])
             ]
             mutate_point["children"][children]["children"][-1] = node
@@ -241,15 +233,30 @@ def do_mutate(
 
 # TODO ahora mismo el xover puede darme un arbol con mayor profundidad máxima que MAX_DEPTH
 def do_xover(selected1, selected2, MAX_DEPTH):
-    offspring = deepcopy(selected1)
-    xover_point1, _ = select_random_node(offspring, None, 0, MAX_DEPTH)
-    xover_point2, _ = select_random_node(selected2, None, 0, MAX_DEPTH)
+    r = randint(0, len(selected1["children"]) - 1)
 
-    child_count1 = len(xover_point1["children"])
-    child_count2 = len(xover_point2["children"])
-    xover_point1["children"][randint(0, child_count1 - 1)] = xover_point2["children"][
-        randint(0, child_count2 - 1)
-    ]
+    offspring = deepcopy(selected1)
+    xover_point1, depth1 = select_random_node(
+        offspring["children"][r], offspring, 1, MAX_DEPTH
+    )
+    xover_point2, depth2 = select_random_node(
+        selected2["children"][r], selected2, 1, MAX_DEPTH
+    )
+
+    if depth1 == 0:
+        r1 = r
+    else:
+        child_count1 = len(xover_point1["children"])
+        r1 = randint(0, child_count1 - 1)
+
+    if depth2 == 0:
+        r2 = r
+    else:
+        child_count2 = len(xover_point2["children"])
+        r2 = randint(0, child_count2 - 1)
+
+    xover_point1["children"][r1] = xover_point2["children"][r2]
+
     return offspring
 
 
@@ -438,7 +445,7 @@ def symbolic_regression(
                     prediction = least_squares(
                         fun,
                         constant_ini,
-                        bounds=(0, MAX_CONSTANT),
+                        bounds=(-1, MAX_CONSTANT + 1),
                         kwargs={
                             "prog": prog_const,
                             "ts": X,
@@ -467,7 +474,7 @@ def symbolic_regression(
         mean = reduce(lambda a, b: a + b, fitness) / len(fitness)
 
         print(
-            f"Generation: {gen}\nBest Score: {global_best}\nMean score: {mean}\nBest program:\n{render_prog(best_prog)}\n"
+            f"Generation: {gen + 1}\nBest Score: {global_best}\nMean score: {mean}\nBest program:\n{render_prog(best_prog)}\n"
         )
 
         if global_best < EPSILON:
