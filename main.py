@@ -56,23 +56,25 @@ def main():
     ts, X1s, X2s = take_n_samples_regular(t, X1, X2, samples)
     X_samples = [[ts[i], X1s[i], X2s[i]] for i in range(len(ts))]
     ode = [
-        lotka_volterra_dx([X1s[i], X2s[i]], t[i], a, b, c, d) for i in range(len(ts))
+        lotka_volterra_dx([X1s[i], X2s[i]], ts[i], a, b, c, d) for i in range(len(ts))
     ]
 
-    ode1 = [[i[0]] for i in ode]
+    # ode1 = [[i[0]] for i in ode]
+    a = [[-X[1] * (c - d * X[0])] for X in X_samples]
 
     print(
         symbolic_regression(
             X_samples,
-            ode,
+            a,
             seed_g=0,
-            MAX_GENERATIONS=1000,
-            N_GENERATION_OPTIMIZE=10,
-            POP_SIZE=1000,
-            MAX_CONSTANT=1,
-            TOURNAMENT_SIZE=50,
+            MAX_GENERATIONS=200,
+            N_GENERATION_OPTIMIZE=1,
+            POP_SIZE=200,
+            MAX_CONSTANT=5,
+            TOURNAMENT_SIZE=10,
             XOVER_PCT=0.5,
-            MAX_DEPTH=7,
+            MAX_DEPTH=4,
+            REG_STRENGTH=4,
         )
     )
 

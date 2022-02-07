@@ -152,6 +152,9 @@ def do_mutate(
                 "feature_name": features_names[randint(0, len(features_names) - 1)]
             }
 
+        if r < CONSTANT_PROBABILITY + VARIABLE_PROBABILITY:
+            mutate_point["children"][children] = {"value": random() * MAX_CONSTANT}
+
         # add program
         else:
             rp = random_prog(
@@ -180,7 +183,7 @@ def do_mutate(
     # children is function
     else:
         r = random()
-        # Change operation same "aridad"
+        # Change operation same arity
         if r < CHANGE_OPERATION_PROBABILITY:
             possibles_func = [
                 i
@@ -197,15 +200,18 @@ def do_mutate(
 
         # Delete node
         if r < CHANGE_OPERATION_PROBABILITY + DELETE_NODE_PROBABILITY:
-            mutate_point["children"][children] = random_prog(
-                depth + 1,
-                system_lenght,
-                operations,
-                features_names,
-                MAX_DEPTH,
-                CONSTANT_PROBABILITY,
-                MAX_CONSTANT,
-            )
+            # mutate_point["children"][children] = random_prog(
+            #     depth + 1,
+            #     system_lenght,
+            #     operations,
+            #     features_names,
+            #     MAX_DEPTH,
+            #     CONSTANT_PROBABILITY,
+            #     MAX_CONSTANT,
+            # )
+            mutate_point["children"][children] = mutate_point["children"][children][
+                "children"
+            ][0]
 
         # Add operation using same structure
         else:
@@ -213,15 +219,11 @@ def do_mutate(
             node = deepcopy(mutate_point["children"][children])
 
             mutate_point["children"][children]["children"] = [
-                random_prog(
-                    depth + 1,
-                    system_lenght,
-                    operations,
-                    features_names,
-                    min(MAX_DEPTH, depth + 2),
-                    CONSTANT_PROBABILITY,
-                    MAX_CONSTANT,
-                )
+                {"value": random() * MAX_CONSTANT}
+                if random() < CONSTANT_PROBABILITY
+                else {
+                    "feature_name": features_names[randint(0, len(features_names) - 1)]
+                }
                 for _ in range(r_operation["arg_count"])
             ]
             mutate_point["children"][children]["children"][-1] = node
@@ -444,7 +446,7 @@ def symbolic_regression(
                     optimize = True
                     prediction = least_squares(
                         fun,
-                        constant_ini,
+                        [random() * MAX_CONSTANT for _ in range(constant)],
                         bounds=(-1, MAX_CONSTANT + 1),
                         kwargs={
                             "prog": prog_const,
