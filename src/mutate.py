@@ -100,7 +100,7 @@ def mutate_operation_tree(
         children = randint(0, mutate_node_children_count - 1)
 
         # children is leaf
-        if "children" not in children:
+        if "children" not in mutate_node["children"][children]:
             mutate_node["children"][children] = mutate_leaf(
                 mutate_node["children"][children],
                 features_names=features_names,
