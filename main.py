@@ -4,7 +4,7 @@ from mpl_toolkits.mplot3d import Axes3D
 from scipy import integrate
 from sympy.plotting.textplot import linspace
 from random import seed
-from symbolic_regression import symbolic_regression, render_prog
+from src.symbolic_regression import symbolic_regression
 
 
 def lotka_volterra_dx(X, t, a, b, c, d):
@@ -59,22 +59,19 @@ def main():
         lotka_volterra_dx([X1s[i], X2s[i]], ts[i], a, b, c, d) for i in range(len(ts))
     ]
 
-    # ode1 = [[i[0]] for i in ode]
-    a = [[-X[1] * (c - d * X[0])] for X in X_samples]
-
     print(
         symbolic_regression(
             X_samples,
-            a,
+            ode,
             seed_g=0,
             MAX_GENERATIONS=200,
             N_GENERATION_OPTIMIZE=1,
-            POP_SIZE=200,
+            POP_SIZE=5,
             MAX_CONSTANT=5,
-            TOURNAMENT_SIZE=10,
+            TOURNAMENT_SIZE=3,
             XOVER_PCT=0.5,
             MAX_DEPTH=4,
-            REG_STRENGTH=4,
+            REG_STRENGTH=2,
         )
     )
 
