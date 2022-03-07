@@ -1,16 +1,14 @@
 import operator
 from random import randint, random, seed
-from copy import deepcopy
 from functools import reduce
-from scipy.optimize import least_squares
-import numpy as np
-from pprint import pprint
 from math import *
+from src.lineal_optimization import compute_fitness, lineal_optimization_system
 from src.mutate import mutate_system
 
 from src.operation import ADD, DIV, MUL, NEG, SUB
 from src.random_prog import random_system
 from src.xover import xover
+from src.utils import evaluate
 
 
 def render_prog(node):
@@ -22,27 +20,6 @@ def render_prog(node):
         if "constant" in node:
             return f"C{node['constant']}"
     return node["format_str"](*[render_prog(c) for c in node["children"]])
-
-
-def evaluate(node, row):
-    if "children" not in node:
-        if "feature_name" in node:
-            return row[node["feature_name"]]
-        return node["value"]
-    return node["func"](*[evaluate(c, row) for c in node["children"]])
-
-
-def evaluate_least_squares(theta, node, row):
-    if "children" not in node:
-        if "feature_name" in node:
-            return row[node["feature_name"]]
-        if "constant" in node:
-            return theta[node["constant"]]
-        if "value" in node:
-            return node["value"]
-    return node["func"](
-        *[evaluate_least_squares(theta, c, row) for c in node["children"]]
-    )
 
 
 def get_random_parent(population, fitness, TOURNAMENT_SIZE):
@@ -58,11 +35,9 @@ def get_random_parent(population, fitness, TOURNAMENT_SIZE):
 def get_offspring(
     population,
     fitness,
-    system_lenght,
     operations,
     features_names,
     MAX_DEPTH,
-    CONSTANT_PROBABILITY,
     VARIABLE_PROBABILITY,
     MAX_CONSTANT,
     CHANGE_OPERATION_PROBABILITY,
@@ -87,73 +62,6 @@ def get_offspring(
             ADD_OPERATION_PROBABILITY=ADD_OPERATION_PROBABILITY,
             MAX_CONSTANT=MAX_CONSTANT,
         )
-
-
-def node_count(x):
-    if "children" not in x:
-        return 1
-    return sum([node_count(c) for c in x["children"]])
-
-
-def constant_count(x):
-    if "children" not in x:
-        if "constant" in x:
-            return 1
-        return 0
-    return sum([constant_count(c) for c in x["children"]])
-
-
-def constant_name_assign(selected, number=0, constant=[]):
-    offspring = deepcopy(selected)
-    if "children" not in offspring:
-        if "value" in offspring:
-            offspring["constant"] = number
-            constant.append(offspring.pop("value"))
-            number += 1
-        return offspring, number, constant
-
-    child_number = len(offspring["children"])
-    for c in range(child_number):
-        offspring["children"][c], number, constant = constant_name_assign(
-            offspring["children"][c], number, constant
-        )
-
-    return offspring, number, constant
-
-
-def constant_value_assign(selected, constants):
-    offspring = deepcopy(selected)
-    if "children" not in offspring:
-        if "constant" in offspring:
-            offspring["value"] = constants[offspring.pop("constant")]
-        return offspring
-
-    child_number = len(offspring["children"])
-    for c in range(child_number):
-        offspring["children"][c] = constant_value_assign(
-            offspring["children"][c], constants
-        )
-
-    return offspring
-
-
-def compute_fitness(program, prediction, target, REG_STRENGTH):
-    mse = 0
-    for i in range(len(prediction)):
-        mse_2 = 0
-        for j in range(len(prediction[i])):
-            mse_2 += (prediction[i][j] - target[i][j]) ** 2
-        mse += mse_2 / len(prediction[i])
-    mse /= len(prediction)
-
-    penalty = max(1, log(node_count(program), REG_STRENGTH))
-    # penalty = 1
-    return mse * penalty
-
-
-def fun(theta, prog, ts, ys, REG_STRENGTH):
-    prediction = [evaluate_least_squares(theta, prog, t) for t in ts]
-    return compute_fitness(prog, prediction, ys, REG_STRENGTH)
 
 
 def symbolic_regression(
@@ -213,31 +121,15 @@ def symbolic_regression(
 
             # print(render_prog(prog))
 
-            optimize = False
+            optimized_program = prog
+
             if gen % N_GENERATION_OPTIMIZE == 0:
-                prog_const, constant, constant_ini = constant_name_assign(prog, 0, [])
+                optimized_program = lineal_optimization_system(
+                    system=prog, X=X, target=target
+                )
 
-                if constant != 0:
-                    optimize = True
-                    prediction = least_squares(
-                        fun,
-                        [random() * MAX_CONSTANT for _ in range(constant)],
-                        bounds=(-1, MAX_CONSTANT + 1),
-                        kwargs={
-                            "prog": prog_const,
-                            "ts": X,
-                            "ys": target,
-                            "REG_STRENGTH": REG_STRENGTH,
-                        },
-                    )
-
-                    score = prediction.cost
-
-                    prog = constant_value_assign(prog_const, prediction.x)
-
-            if not optimize:
-                prediction = [evaluate(prog, Xi) for Xi in X]
-                score = compute_fitness(prog, prediction, target, REG_STRENGTH)
+            prediction = [evaluate(optimized_program, Xi) for Xi in X]
+            score = compute_fitness(prog, prediction, target, REG_STRENGTH)
 
             # print(score, optimize)
             # print(render_prog(prog))
@@ -265,20 +157,18 @@ def symbolic_regression(
         for i in range(best_amount, POP_SIZE):
             population_next_gen.append(
                 get_offspring(
-                    population,
-                    fitness,
-                    system_lenght,
-                    operations,
-                    features_names,
-                    MAX_DEPTH,
-                    CONSTANT_PROBABILITY,
-                    VARIABLE_PROBABILITY,
-                    MAX_CONSTANT,
-                    CHANGE_OPERATION_PROBABILITY,
-                    DELETE_NODE_PROBABILITY,
-                    ADD_OPERATION_PROBABILITY,
-                    XOVER_PCT,
-                    TOURNAMENT_SIZE,
+                    population=population,
+                    fitness=fitness,
+                    operations=operations,
+                    features_names=features_names,
+                    MAX_DEPTH=MAX_DEPTH,
+                    VARIABLE_PROBABILITY=VARIABLE_PROBABILITY,
+                    MAX_CONSTANT=MAX_CONSTANT,
+                    CHANGE_OPERATION_PROBABILITY=CHANGE_OPERATION_PROBABILITY,
+                    DELETE_NODE_PROBABILITY=DELETE_NODE_PROBABILITY,
+                    ADD_OPERATION_PROBABILITY=ADD_OPERATION_PROBABILITY,
+                    XOVER_PCT=XOVER_PCT,
+                    TOURNAMENT_SIZE=TOURNAMENT_SIZE,
                 )
             )
 
