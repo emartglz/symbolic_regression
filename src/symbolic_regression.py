@@ -161,4 +161,4 @@ def symbolic_regression(
     print(f"Best score: {global_best}")
     print(f"Best program:\n{render_prog(best_prog)}")
 
-    return render_prog(best_prog)
+    return best_prog
