@@ -55,3 +55,14 @@ def evaluate(node, row):
             return row[node["feature_name"]]
         return node["value"]
     return node["func"](*[evaluate(c, row) for c in node["children"]])
+
+
+def render_prog(node):
+    if "children" not in node:
+        if "feature_name" in node:
+            return node["feature_name"]
+        if "value" in node:
+            return node["value"]
+        if "constant" in node:
+            return f"C{node['constant']}"
+    return node["format_str"](*[render_prog(c) for c in node["children"]])

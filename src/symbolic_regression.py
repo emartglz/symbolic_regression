@@ -8,18 +8,7 @@ from src.mutate import mutate_system
 from src.operation import ADD, DIV, MUL, NEG, SUB
 from src.random_prog import random_system
 from src.xover import xover
-from src.utils import evaluate
-
-
-def render_prog(node):
-    if "children" not in node:
-        if "feature_name" in node:
-            return node["feature_name"]
-        if "value" in node:
-            return node["value"]
-        if "constant" in node:
-            return f"C{node['constant']}"
-    return node["format_str"](*[render_prog(c) for c in node["children"]])
+from src.utils import evaluate, render_prog
 
 
 def get_random_parent(population, fitness, TOURNAMENT_SIZE):
@@ -81,7 +70,7 @@ def symbolic_regression(
     TOURNAMENT_SIZE=3,
     XOVER_PCT=0.7,
     REG_STRENGTH=5,
-    EPSILON=0.001,
+    EPSILON=1e-7,
     PROPORTION_OF_BESTS=1 / 3,
 ):
     seed(seed_g)
@@ -119,8 +108,6 @@ def symbolic_regression(
         for i_prog, prog in enumerate(population):
             print(f"{i_prog + 1}/{POP_SIZE}", end="\r")
 
-            # print(render_prog(prog))
-
             optimized_program = prog
 
             if gen % N_GENERATION_OPTIMIZE == 0:
@@ -129,14 +116,11 @@ def symbolic_regression(
                 )
 
             prediction = [evaluate(optimized_program, Xi) for Xi in X]
-            score = compute_fitness(prog, prediction, target, REG_STRENGTH)
-
-            # print(score, optimize)
-            # print(render_prog(prog))
+            score = compute_fitness(optimized_program, prediction, target, REG_STRENGTH)
 
             if score < global_best:
                 global_best = score
-                best_prog = prog
+                best_prog = optimized_program
 
             fitness.append(score)
 

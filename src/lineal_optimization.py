@@ -1,6 +1,12 @@
 from copy import deepcopy
 from pprint import pprint
-from src.utils import constant_name_assign, constant_value_assign, evaluate, node_count
+from src.utils import (
+    constant_name_assign,
+    constant_value_assign,
+    evaluate,
+    node_count,
+    render_prog,
+)
 import numpy as np
 import math
 
@@ -24,8 +30,9 @@ def lineal_optimization_system(system, X, target):
     offspring = deepcopy(system)
 
     for system_i, edo_equation in enumerate(offspring["children"]):
+        offspring_edo_equation = deepcopy(edo_equation)
 
-        constants_count = len(edo_equation["children"])
+        constants_count = len(offspring_edo_equation["children"])
 
         if constants_count > 0:
             A = np.array(
@@ -33,7 +40,7 @@ def lineal_optimization_system(system, X, target):
                     np.array(
                         [
                             evaluate(ode_equation_term["children"][1], X_i)
-                            for ode_equation_term in edo_equation["children"]
+                            for ode_equation_term in offspring_edo_equation["children"]
                         ]
                     )
                     for X_i in X
@@ -43,9 +50,9 @@ def lineal_optimization_system(system, X, target):
 
             x = np.linalg.lstsq(A, b)[0]
 
-            edo_equation, _, _ = constant_name_assign(offspring)
-            edo_equation = constant_value_assign(offspring, x)
+            offspring_edo_equation, _, _ = constant_name_assign(offspring_edo_equation)
+            offspring_edo_equation = constant_value_assign(offspring_edo_equation, x)
 
-            offspring["children"][system_i] == edo_equation
+            offspring["children"][system_i] = offspring_edo_equation
 
     return offspring

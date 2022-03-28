@@ -2,7 +2,7 @@ import operator
 
 
 def safe_div(a, b):
-    return a / b if b else a
+    return a / b if abs(b) >= 1e-14 else a
 
 
 ADD = {
