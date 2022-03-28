@@ -5,6 +5,7 @@ from scipy import integrate
 from sympy.plotting.textplot import linspace
 from random import seed
 from src.symbolic_regression import symbolic_regression
+from src.utils import evaluate
 
 
 def lotka_volterra_dx(X, t, a, b, c, d):
@@ -59,36 +60,30 @@ def main():
         lotka_volterra_dx([X1s[i], X2s[i]], ts[i], a, b, c, d) for i in range(len(ts))
     ]
 
-    print(
-        symbolic_regression(
-            X_samples,
-            ode,
-            seed_g=0,
-            MAX_GENERATIONS=200,
-            N_GENERATION_OPTIMIZE=1,
-            POP_SIZE=5,
-            MAX_CONSTANT=5,
-            TOURNAMENT_SIZE=3,
-            XOVER_PCT=0.5,
-            MAX_DEPTH=4,
-            REG_STRENGTH=2,
-        )
+    best_system = symbolic_regression(
+        X_samples,
+        ode,
+        seed_g=0,
+        MAX_GENERATIONS=100,
+        N_GENERATION_OPTIMIZE=1,
+        POP_SIZE=100,
+        TOURNAMENT_SIZE=1,
+        XOVER_PCT=0.5,
+        MAX_DEPTH=10,
+        REG_STRENGTH=20,
     )
 
-    # integrate_gp = lambda X, t: [
-    #     est_gp[0].predict([[t, X[0], X[1]]])[0],
-    #     est_gp[1].predict([[t, X[0], X[1]]])[0],
-    # ]
+    integrate_gp = lambda X, t: evaluate(best_system, {"X1": t, "X2": X[0], "X3": X[1]})
 
-    # X_gp, infodict = integrate.odeint(integrate_gp, X0, t, full_output=True)
+    X_gp, infodict = integrate.odeint(integrate_gp, X0, t, full_output=True)
 
-    # X1_gp, X2_gp = X_gp.T
+    X1_gp, X2_gp = X_gp.T
 
-    # plt.plot(t, X1)
-    # plt.plot(t, X2)
-    # plt.plot(t, X1_gp)
-    # plt.plot(t, X2_gp)
-    # plt.show()
+    plt.plot(ts, X1s)
+    plt.plot(ts, X2s)
+    plt.plot(t, X1_gp)
+    plt.plot(t, X2_gp)
+    plt.show()
 
 
 if __name__ == "__main__":
