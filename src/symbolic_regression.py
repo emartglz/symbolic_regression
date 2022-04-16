@@ -56,19 +56,19 @@ def get_offspring(
 def symbolic_regression(
     X,
     target,
-    MAX_GENERATIONS=10,
-    N_GENERATION_OPTIMIZE=3,
+    MAX_GENERATIONS=100,
+    N_GENERATION_OPTIMIZE=1,
     seed_g=random(),
     MAX_DEPTH=10,
     POP_SIZE=300,
-    CONSTANT_PROBABILITY=0.3,
+    FEATURES_NAMES=None,
     VARIABLE_PROBABILITY=0.3,
     MAX_CONSTANT=100,
     CHANGE_OPERATION_PROBABILITY=0.3,
     DELETE_NODE_PROBABILITY=0.3,
     ADD_OPERATION_PROBABILITY=0.4,
     TOURNAMENT_SIZE=3,
-    XOVER_PCT=0.7,
+    XOVER_PCT=0.5,
     REG_STRENGTH=5,
     EPSILON=1e-7,
     PROPORTION_OF_BESTS=1 / 3,
@@ -77,17 +77,9 @@ def symbolic_regression(
     feature_lenght = len(X[0])
     system_lenght = len(target[0])
 
-    features_names = []
-    for i in range(feature_lenght):
-        features_names.append(f"X{i + 1}")
+    features_names = FEATURES_NAMES or [f"X{i + 1}" for i in range(feature_lenght)]
 
-    X2 = []
-    for x in X:
-        temp = {}
-        for i, k in enumerate(features_names):
-            temp[k] = x[i]
-        X2.append(temp)
-    X = X2
+    X = [dict(zip(features_names, x)) for x in X]
 
     operations = (ADD, SUB, MUL, DIV, NEG)
 
@@ -124,7 +116,7 @@ def symbolic_regression(
 
             fitness.append(score)
 
-        mean = reduce(lambda a, b: a + b, fitness) / len(fitness)
+        mean = sum(fitness) / len(fitness)
 
         print(
             f"Generation: {gen + 1}\nBest Score: {global_best}\nMean score: {mean}\nBest program:\n{render_prog(best_prog)}\n"
