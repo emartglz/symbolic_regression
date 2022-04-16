@@ -66,3 +66,17 @@ def render_prog(node):
         if "constant" in node:
             return f"C{node['constant']}"
     return node["format_str"](*[render_prog(c) for c in node["children"]])
+
+
+def take_n_samples_regular(t, X1, X2, n):
+    step = int(len(t) / n)
+
+    tr = []
+    XR1 = []
+    XR2 = []
+    for i in range(n):
+        tr.append(t[i * step])
+        XR1.append(X1[i * step])
+        XR2.append(X2[i * step])
+
+    return (tr, XR1, XR2)
