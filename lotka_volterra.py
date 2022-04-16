@@ -32,11 +32,9 @@ def try_lotka_volterra():
 
     time = 1000
     n = 100000
-
-    samples = 200
-
     t, X1, X2 = integrate_lotka_volterra(time, n, X0, a, b, c, d)
 
+    samples = 200
     ts, X1s, X2s = take_n_samples_regular(t, X1, X2, samples)
     X_samples = [[ts[i], X1s[i], X2s[i]] for i in range(len(ts))]
     ode = [
@@ -47,6 +45,7 @@ def try_lotka_volterra():
         X_samples,
         ode,
         seed_g=0,
+        FEATURES_NAMES=["t", "X0", "X1"],
         MAX_GENERATIONS=100,
         N_GENERATION_OPTIMIZE=1,
         POP_SIZE=100,
@@ -56,14 +55,15 @@ def try_lotka_volterra():
         REG_STRENGTH=20,
     )
 
-    integrate_gp = lambda X, t: evaluate(best_system, {"X1": t, "X2": X[0], "X3": X[1]})
+    integrate_gp = lambda X, t: evaluate(best_system, {"t": t, "X0": X[0], "X1": X[1]})
 
     X_gp, infodict = integrate.odeint(integrate_gp, X0, t, full_output=True)
 
     X1_gp, X2_gp = X_gp.T
 
-    plt.plot(ts, X1s)
-    plt.plot(ts, X2s)
-    plt.plot(t, X1_gp)
-    plt.plot(t, X2_gp)
+    plt.plot(t, X1, label="X1 samples")
+    plt.plot(t, X2, label="X2 samples")
+    plt.plot(t, X1_gp, label="X1 symbolic regression")
+    plt.plot(t, X2_gp, label="X2 symbolic regression")
+    plt.legend()
     plt.show()
