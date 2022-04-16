@@ -16,7 +16,7 @@ def compute_fitness(program, prediction, target, REG_STRENGTH):
     for i in range(len(prediction)):
         mse_2 = 0
         for j in range(len(prediction[i])):
-            mse_2 += (prediction[i][j] - target[i][j]) ** 2
+            mse_2 += abs(prediction[i][j] - target[i][j])
         mse += mse_2 / len(prediction[i])
     mse /= len(prediction)
 
