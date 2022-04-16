@@ -1,8 +1,9 @@
 import operator
+from src.constants import ZERO
 
 
 def safe_div(a, b):
-    return a / b if abs(b) >= 1e-14 else a
+    return a / b if abs(b) >= ZERO else a
 
 
 ADD = {
