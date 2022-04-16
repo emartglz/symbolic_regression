@@ -1,5 +1,9 @@
 from copy import deepcopy
 
+import numpy as np
+
+from src.constants import ZERO
+
 
 def constant_name_assign(selected, number=0, constant=[]):
     offspring = deepcopy(selected)
@@ -75,3 +79,40 @@ def take_n_samples_regular(n, l):
         list_r.append(l[i * step])
 
     return list_r
+
+
+def filter_zero_terms_edo_equation(equation):
+    offspring = deepcopy(equation)
+    for i, edo_term in enumerate(offspring["children"]):
+        if abs(edo_term["children"][0]["value"]) < ZERO:
+            offspring["children"].pop(i)
+
+    return offspring
+
+
+def filter_zero_terms_edo_system(system):
+    offspring = deepcopy(system)
+    for i, edo_equation in enumerate(offspring["children"]):
+        offspring["children"][i] = filter_zero_terms_edo_equation(equation=edo_equation)
+
+    return offspring
+
+
+def round_terms_edo_equation(equation, ROUND_SIZE=5):
+    offspring = deepcopy(equation)
+    for i, edo_term in enumerate(offspring["children"]):
+        edo_term["children"][0]["value"] = np.round(
+            edo_term["children"][0]["value"], ROUND_SIZE
+        )
+
+    return offspring
+
+
+def round_terms_edo_system(system, ROUND_SIZE=5):
+    offspring = deepcopy(system)
+    for i, edo_equation in enumerate(offspring["children"]):
+        offspring["children"][i] = round_terms_edo_equation(
+            equation=edo_equation, ROUND_SIZE=ROUND_SIZE
+        )
+
+    return offspring
