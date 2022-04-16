@@ -8,7 +8,12 @@ from src.mutate import mutate_system
 from src.operation import ADD, DIV, MUL, NEG, SUB
 from src.random_prog import random_system
 from src.xover import xover
-from src.utils import evaluate, render_prog
+from src.utils import (
+    evaluate,
+    filter_zero_terms_edo_system,
+    render_prog,
+    round_terms_edo_system,
+)
 
 
 def get_random_parent(population, fitness, TOURNAMENT_SIZE):
@@ -72,6 +77,7 @@ def symbolic_regression(
     REG_STRENGTH=5,
     EPSILON=1e-7,
     PROPORTION_OF_BESTS=1 / 3,
+    ROUND_SIZE=5,
 ):
     seed(seed_g)
     feature_lenght = len(X[0])
@@ -149,6 +155,12 @@ def symbolic_regression(
             )
 
         population = population_next_gen
+
+    best_prog = round_terms_edo_system(system=best_prog, ROUND_SIZE=ROUND_SIZE)
+    best_prog = filter_zero_terms_edo_system(system=best_prog)
+
+    prediction = [evaluate(best_prog, Xi) for Xi in X]
+    score = compute_fitness(best_prog, prediction, target, REG_STRENGTH)
 
     print(f"Best score: {global_best}")
     print(f"Best program:\n{render_prog(best_prog)}")
