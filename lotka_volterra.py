@@ -35,7 +35,9 @@ def try_lotka_volterra():
     t, X1, X2 = integrate_lotka_volterra(time, n, X0, a, b, c, d)
 
     samples = 200
-    ts, X1s, X2s = take_n_samples_regular(t, X1, X2, samples)
+    ts = take_n_samples_regular(samples, t)
+    X1s = take_n_samples_regular(samples, X1)
+    X2s = take_n_samples_regular(samples, X2)
     X_samples = [[ts[i], X1s[i], X2s[i]] for i in range(len(ts))]
     ode = [
         lotka_volterra_dx([X1s[i], X2s[i]], ts[i], a, b, c, d) for i in range(len(ts))

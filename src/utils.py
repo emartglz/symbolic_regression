@@ -68,15 +68,10 @@ def render_prog(node):
     return node["format_str"](*[render_prog(c) for c in node["children"]])
 
 
-def take_n_samples_regular(t, X1, X2, n):
-    step = int(len(t) / n)
-
-    tr = []
-    XR1 = []
-    XR2 = []
+def take_n_samples_regular(n, l):
+    step = int(len(l) / n)
+    list_r = []
     for i in range(n):
-        tr.append(t[i * step])
-        XR1.append(X1[i * step])
-        XR2.append(X2[i * step])
+        list_r.append(l[i * step])
 
-    return (tr, XR1, XR2)
+    return list_r
