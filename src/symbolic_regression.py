@@ -4,7 +4,7 @@ from functools import reduce
 from math import *
 from src.lineal_optimization import compute_fitness, lineal_optimization_system
 from src.mutate import mutate_system
-
+import timeit
 from src.operation import ADD, DIV, MUL, NEG, SUB
 from src.random_prog import random_system
 from src.xover import xover
@@ -79,6 +79,8 @@ def symbolic_regression(
     PROPORTION_OF_BESTS=1 / 3,
     ROUND_SIZE=5,
 ):
+    start = timeit.default_timer()
+
     seed(seed_g)
     feature_lenght = len(X[0])
     system_lenght = len(target[0])
@@ -101,7 +103,8 @@ def symbolic_regression(
     ]
 
     global_best = float("inf")
-    for gen in range(MAX_GENERATIONS):
+    gen = 0
+    while gen < MAX_GENERATIONS:
         fitness = []
         for i_prog, prog in enumerate(population):
             print(f"{i_prog + 1}/{POP_SIZE}", end="\r")
@@ -155,6 +158,7 @@ def symbolic_regression(
             )
 
         population = population_next_gen
+        gen += 1
 
     best_prog = round_terms_edo_system(system=best_prog, ROUND_SIZE=ROUND_SIZE)
     best_prog = filter_zero_terms_edo_system(system=best_prog)
@@ -162,7 +166,11 @@ def symbolic_regression(
     prediction = [evaluate(best_prog, Xi) for Xi in X]
     score = compute_fitness(best_prog, prediction, target, REG_STRENGTH)
 
+    print(f"Generations : {gen + 1}")
     print(f"Best score: {global_best}")
     print(f"Best program:\n{render_prog(best_prog)}")
+
+    stop = timeit.default_timer()
+    print("Time: ", stop - start)
 
     return best_prog
