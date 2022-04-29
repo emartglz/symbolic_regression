@@ -176,8 +176,8 @@ def try_zombie():
     X1s = take_n_samples_regular(samples, X1)
     X2s = take_n_samples_regular(samples, X2)
     X3s = take_n_samples_regular(samples, X3)
-    X4s = take_n_samples_regular(samples, X3)
-    X5s = take_n_samples_regular(samples, X3)
+    X4s = take_n_samples_regular(samples, X4)
+    X5s = take_n_samples_regular(samples, X5)
 
     X_samples = [
         [ts[i], X1s[i], X2s[i], X3s[i], X4s[i], X5s[i]] for i in range(len(ts))
