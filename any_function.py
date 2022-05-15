@@ -6,26 +6,27 @@ from src.symbolic_regression import symbolic_regression
 from src.utils import evaluate, take_n_samples_regular
 
 
-def f(x, a, b, c):
-    return a * x + b * x**2 + c * x**3
+def f(x, a, b, c, d):
+    return a * x + b * x**2 + c * x**3 + d * x**4
 
 
-def df(x, a, b, c):
-    return a + 2 * b * x + 3 * c * x**2
+def df(x, a, b, c, d):
+    return a + 2 * b * x + 3 * c * x**2 + d * x**3
 
 
 def try_any_function():
-    a = 10
+    a = 2500
     b = -175
     c = 2
+    d = -0.006
 
-    time = 100
+    time = 200
     n = 100000
 
     x = linspace(0, time, n)
-    y = [f(i, a, b, c) for i in x]
+    y = [f(i, a, b, c, d) for i in x]
 
-    samples = 201
+    samples = 501
 
     xs = take_n_samples_regular(samples, x)
     ys = take_n_samples_regular(samples, y)
