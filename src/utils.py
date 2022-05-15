@@ -83,9 +83,9 @@ def take_n_samples_regular(n, l):
 
 def filter_zero_terms_edo_equation(equation):
     offspring = deepcopy(equation)
-    for i, edo_term in enumerate(offspring["children"]):
+    for edo_term in equation["children"]:
         if abs(edo_term["children"][0]["value"]) < ZERO:
-            offspring["children"].pop(i)
+            offspring["children"].remove(edo_term)
 
     return offspring
 
