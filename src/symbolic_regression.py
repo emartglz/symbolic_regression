@@ -167,7 +167,7 @@ def symbolic_regression(
     score = compute_fitness(best_prog, prediction, target, REG_STRENGTH)
 
     print(f"Generations : {gen + 1}")
-    print(f"Best score: {global_best}")
+    print(f"Best score: {score}")
     print(f"Best program:\n{render_prog(best_prog)}")
 
     stop = timeit.default_timer()
