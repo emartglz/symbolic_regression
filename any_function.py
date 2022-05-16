@@ -11,7 +11,7 @@ def f(x, a, b, c, d):
 
 
 def df(x, a, b, c, d):
-    return a + 2 * b * x + 3 * c * x**2 + d * x**3
+    return a + 2 * b * x + 3 * c * x**2 + 4 * d * x**3
 
 
 def try_any_function():
@@ -33,6 +33,9 @@ def try_any_function():
 
     X_samples = [[xs[i], ys[i]] for i in range(len(xs) - 1)]
     ode = [[(ys[i + 1] - ys[i]) / (xs[i + 1] - xs[i])] for i in range(len(xs) - 1)]
+
+    # X_samples = [[xs[i], ys[i]] for i in range(len(xs) - 1)]
+    # ode = [[df(xs[i], a, b, c, d)] for i in range(len(xs) - 1)]
 
     best_system = symbolic_regression(
         X_samples,
