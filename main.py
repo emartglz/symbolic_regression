@@ -3,6 +3,7 @@ from any_function import try_any_function
 from lotka_volterra import try_lotka_volterra
 from first_sir import try_sir
 from zombie_militia_workers_moles import try_zombie
+from CMIRDZKF import try_CMIRDZKF
 
 
 def main():
@@ -10,7 +11,8 @@ def main():
     # try_sir()
     # try_zombie()
     # try_zombie_SIZR()
-    try_any_function()
+    # try_any_function()
+    try_CMIRDZKF()
 
 
 if __name__ == "__main__":
