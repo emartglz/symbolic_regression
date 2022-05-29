@@ -1,4 +1,8 @@
 from copy import deepcopy
+import json
+import marshal
+import base64
+import types
 
 import numpy as np
 
@@ -116,3 +120,67 @@ def round_terms_edo_system(system, ROUND_SIZE=5):
         )
 
     return offspring
+
+
+def serialize_system(node):
+    offspring = deepcopy(node)
+
+    if "children" not in offspring:
+        return offspring
+
+    func_code_string = marshal.dumps(offspring["func"].__code__)
+    func_code_base64 = base64.b64encode(func_code_string)
+    offspring["func"] = str(func_code_base64.decode("ascii"))
+
+    format_code_string = marshal.dumps(offspring["format_str"].__code__)
+    format_code_base64 = base64.b64encode(format_code_string)
+    offspring["format_str"] = str(format_code_base64.decode("ascii"))
+
+    child_number = len(offspring["children"])
+    for c in range(child_number):
+        offspring["children"][c] = serialize_system(offspring["children"][c])
+
+    return offspring
+
+
+def deserialize_system(node):
+    offspring = deepcopy(node)
+
+    if "children" not in offspring:
+        return offspring
+
+    func_code_string = base64.b64decode(offspring["func"])
+    func_code_marshal = marshal.loads(func_code_string)
+    func_code_base64 = types.FunctionType(func_code_marshal, globals())
+    offspring["func"] = func_code_base64
+
+    format_code_string = base64.b64decode(offspring["format_str"])
+    format_code_marshal = marshal.loads(format_code_string)
+    format_code_base64 = types.FunctionType(format_code_marshal, globals())
+    offspring["format_str"] = format_code_base64
+
+    child_number = len(offspring["children"])
+    for c in range(child_number):
+        offspring["children"][c] = deserialize_system(offspring["children"][c])
+
+    return offspring
+
+
+def save_results(results, file_name):
+    offsprint = deepcopy(results["system"])
+    results["system"] = serialize_system(offsprint)
+
+    with open(f"{file_name}.json", "w") as fp:
+        json.dump(results, fp)
+
+    return results
+
+
+def get_results(file_name):
+    with open(f"{file_name}.json") as json_file:
+        data = json.load(json_file)
+
+    offspring = deepcopy(data["system"])
+    data["system"] = deserialize_system(offspring)
+
+    return data
