@@ -173,4 +173,29 @@ def symbolic_regression(
     stop = timeit.default_timer()
     print("Time: ", stop - start)
 
-    return best_prog
+    return {
+        "system": best_prog,
+        "system_representation": render_prog(best_prog),
+        "generations": gen + 1,
+        "score": score,
+        "time": stop - start,
+        "X": X,
+        "target": target,
+        "MAX_GENERATIONS": MAX_GENERATIONS,
+        "N_GENERATION_OPTIMIZE": N_GENERATION_OPTIMIZE,
+        "seed_g": seed_g,
+        "MAX_DEPTH": MAX_DEPTH,
+        "POP_SIZE": POP_SIZE,
+        "FEATURES_NAMES": features_names,
+        "VARIABLE_PROBABILITY": VARIABLE_PROBABILITY,
+        "MAX_CONSTANT": MAX_CONSTANT,
+        "CHANGE_OPERATION_PROBABILITY": CHANGE_OPERATION_PROBABILITY,
+        "DELETE_NODE_PROBABILITY": DELETE_NODE_PROBABILITY,
+        "ADD_OPERATION_PROBABILITY": ADD_OPERATION_PROBABILITY,
+        "TOURNAMENT_SIZE": TOURNAMENT_SIZE,
+        "XOVER_PCT": XOVER_PCT,
+        "REG_STRENGTH": REG_STRENGTH,
+        "EPSILON": EPSILON,
+        "PROPORTION_OF_BESTS": PROPORTION_OF_BESTS,
+        "ROUND_SIZE": ROUND_SIZE,
+    }
