@@ -2,7 +2,7 @@ from matplotlib import pyplot as plt
 from sympy.plotting.textplot import linspace
 from scipy import integrate
 from src.symbolic_regression import symbolic_regression
-from src.utils import evaluate, take_n_samples_regular
+from src.utils import evaluate, get_results, save_results, take_n_samples_regular
 
 # X0 C Collector population
 # X1 M Millitia population
@@ -167,20 +167,6 @@ def try_CMIRDZKF():
         delta_u,
     )
 
-    # plt.plot(t, X0, label="Collector population")
-    # plt.plot(t, X1, label="Millitia population")
-    # plt.plot(t, X2, label="Infected population")
-    # plt.plot(t, X3, label="Recupered population")
-    # plt.plot(t, X4, label="Dead population")
-    # plt.plot(t, X5, label="Zombie population")
-    # plt.plot(t, X6, label="Kill population")
-    # plt.legend()
-    # plt.show()
-
-    # plt.plot(t, X7, label="Food amount")
-    # plt.legend()
-    # plt.show()
-
     ts = take_n_samples_regular(samples, t)
     X0s = take_n_samples_regular(samples, X0)
     X1s = take_n_samples_regular(samples, X1)
@@ -216,19 +202,24 @@ def try_CMIRDZKF():
         for i in range(len(ts))
     ]
 
-    best_system = symbolic_regression(
+    results = symbolic_regression(
         X_samples,
         ode,
         seed_g=0,
         FEATURES_NAMES=["t", "X0", "X1", "X2", "X3", "X4", "X5", "X6", "X7"],
-        MAX_GENERATIONS=10000,
+        MAX_GENERATIONS=500,
         N_GENERATION_OPTIMIZE=1,
-        POP_SIZE=100,
-        TOURNAMENT_SIZE=1,
+        POP_SIZE=500,
+        TOURNAMENT_SIZE=20,
         XOVER_PCT=0.5,
         MAX_DEPTH=10,
         REG_STRENGTH=100,
     )
+
+    save_results(results, "CMIRDZKF")
+
+    results_2 = get_results("CMIRDZKF")
+    best_system = results_2["system"]
 
     integrate_gp = lambda X, t: evaluate(
         best_system,
