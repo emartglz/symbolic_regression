@@ -1,4 +1,3 @@
-import operator
 from src.constants import ZERO
 
 
@@ -7,19 +6,23 @@ def safe_div(a, b):
 
 
 ADD = {
-    "func": operator.add,
+    "func": lambda a, b: a + b,
     "arg_count": 2,
     "format_str": lambda a, b: f"({a} + {b})",
 }
 SUB = {
-    "func": operator.sub,
+    "func": lambda a, b: a - b,
     "arg_count": 2,
     "format_str": lambda a, b: f"({a} - {b})",
 }
 MUL = {
-    "func": operator.mul,
+    "func": lambda a, b: a * b,
     "arg_count": 2,
     "format_str": lambda a, b: f"({a} * {b})",
 }
 DIV = {"func": safe_div, "arg_count": 2, "format_str": lambda a, b: f"({a} / {b})"}
-NEG = {"func": operator.neg, "arg_count": 1, "format_str": lambda a: f"-({a})"}
+NEG = {
+    "func": lambda a: -a,
+    "arg_count": 1,
+    "format_str": lambda a: f"-({a})",
+}
