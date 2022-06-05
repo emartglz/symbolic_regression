@@ -2,7 +2,7 @@ from matplotlib import pyplot as plt
 from sympy.plotting.textplot import linspace
 from scipy import integrate
 from src.symbolic_regression import symbolic_regression
-from src.utils import evaluate, take_n_samples_regular
+from src.utils import evaluate, save_results, take_n_samples_regular
 
 # S Susceptible
 # I Infected
@@ -83,7 +83,7 @@ def try_zombie_SIZR():
         for i in range(len(ts))
     ]
 
-    best_system = symbolic_regression(
+    results = symbolic_regression(
         X_samples,
         ode,
         seed_g=0,
@@ -96,6 +96,9 @@ def try_zombie_SIZR():
         MAX_DEPTH=10,
         REG_STRENGTH=40,
     )
+
+    best_system = results["system"]
+    save_results(results, "SIZR")
 
     integrate_gp = lambda X, t: evaluate(
         best_system,

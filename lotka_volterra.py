@@ -2,7 +2,7 @@ from matplotlib import pyplot as plt
 from sympy.plotting.textplot import linspace
 from scipy import integrate
 from src.symbolic_regression import symbolic_regression
-from src.utils import evaluate, take_n_samples_regular
+from src.utils import evaluate, save_results, take_n_samples_regular
 
 
 def lotka_volterra_dx(X, t, a, b, c, d):
@@ -43,7 +43,7 @@ def try_lotka_volterra():
         lotka_volterra_dx([X1s[i], X2s[i]], ts[i], a, b, c, d) for i in range(len(ts))
     ]
 
-    best_system = symbolic_regression(
+    results = symbolic_regression(
         X_samples,
         ode,
         seed_g=0,
@@ -56,6 +56,9 @@ def try_lotka_volterra():
         MAX_DEPTH=10,
         REG_STRENGTH=20,
     )
+
+    best_system = results["system"]
+    save_results(results, "LV")
 
     integrate_gp = lambda X, t: evaluate(best_system, {"t": t, "X0": X[0], "X1": X[1]})
 
