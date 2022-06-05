@@ -6,7 +6,11 @@ from src.utils import evaluate, save_results, take_n_samples_regular
 
 
 def sir_dx(X, t, a, b):
-    return [-a * X[1] * X[0], a * X[1] * X[0] - b * X[1], b * X[1]]
+    S = X[0]
+    I = X[1]
+    R = X[2]
+
+    return [-a * I * S, a * I * S - b * I, b * I]
 
 
 def integrate_sir(time, samples, X0, a, b):
@@ -14,9 +18,9 @@ def integrate_sir(time, samples, X0, a, b):
 
     X, infodict = integrate.odeint(sir_dx, X0, t, (a, b), full_output=True)
 
-    X1, X2, X3 = X.T
+    S, I, R = X.T
 
-    return (t, X1, X2, X3)
+    return (t, S, I, R)
 
 
 def try_sir():
@@ -30,47 +34,49 @@ def try_sir():
 
     samples = 200
 
-    t, X1, X2, X3 = integrate_sir(time, n, X0, a, b)
+    t, S, I, R = integrate_sir(time, n, X0, a, b)
 
     ts = take_n_samples_regular(samples, t)
-    X1s = take_n_samples_regular(samples, X1)
-    X2s = take_n_samples_regular(samples, X2)
-    X3s = take_n_samples_regular(samples, X3)
+    Ss = take_n_samples_regular(samples, S)
+    Is = take_n_samples_regular(samples, I)
+    Rs = take_n_samples_regular(samples, R)
 
-    X_samples = [[ts[i], X1s[i], X2s[i], X3s[i]] for i in range(len(ts))]
+    X_samples = [
+        {"t": ts[i], "S": Ss[i], "I": Is[i], "R": Rs[i]} for i in range(len(ts))
+    ]
 
-    ode = [sir_dx([X1s[i], X2s[i], X3s[i]], ts[i], a, b) for i in range(len(ts))]
+    ode = [sir_dx([Ss[i], Is[i], Rs[i]], ts[i], a, b) for i in range(len(ts))]
 
     results = symbolic_regression(
         X_samples,
         ode,
         seed_g=0,
-        FEATURES_NAMES=["t", "X0", "X1", "X2"],
         MAX_GENERATIONS=100,
-        N_GENERATION_OPTIMIZE=1,
         POP_SIZE=100,
-        TOURNAMENT_SIZE=1,
-        XOVER_PCT=0.5,
-        MAX_DEPTH=10,
+        FEATURES_NAMES=[["S", "I"], ["S", "I"], ["I"]],
+        MUTATION_SIZE=50,
+        XOVER_SIZE=50,
+        MAX_DEPTH=5,
         REG_STRENGTH=20,
+        verbose=True,
     )
 
     best_system = results["system"]
     save_results(results, "SIR")
 
     integrate_gp = lambda X, t: evaluate(
-        best_system, {"t": t, "X0": X[0], "X1": X[1], "X2": X[2]}
+        best_system, {"t": t, "S": X[0], "I": X[1], "R": X[2]}
     )
 
-    X_gp, infodict = integrate.odeint(integrate_gp, X0, t, full_output=True)
+    SIR_gp, infodict = integrate.odeint(integrate_gp, X0, t, full_output=True)
 
-    X1_gp, X2_gp, X3_gp = X_gp.T
+    S_gp, I_gp, R_gp = SIR_gp.T
 
-    plt.plot(t, X1, label="X1 samples")
-    plt.plot(t, X2, label="X2 samples")
-    plt.plot(t, X3, label="X3 samples")
-    plt.plot(t, X1_gp, label="X1 symbolic regression")
-    plt.plot(t, X2_gp, label="X2 symbolic regression")
-    plt.plot(t, X3_gp, label="X3 symbolic regression")
+    plt.plot(t, S, label="S samples")
+    plt.plot(t, I, label="I samples")
+    plt.plot(t, R, label="R samples")
+    plt.plot(t, S_gp, label="S symbolic regression")
+    plt.plot(t, I_gp, label="I symbolic regression")
+    plt.plot(t, R_gp, label="R symbolic regression")
     plt.legend()
     plt.show()
