@@ -48,7 +48,7 @@ def lineal_optimization_system(system, X, target):
             )
             b = np.array([y[system_i] for y in target])
 
-            x = np.linalg.lstsq(A, b)[0]
+            x = np.linalg.lstsq(A, b, rcond=None)[0]
 
             offspring_edo_equation, _, _ = constant_name_assign(offspring_edo_equation)
             offspring_edo_equation = constant_value_assign(offspring_edo_equation, x)
