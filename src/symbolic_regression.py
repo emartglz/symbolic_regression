@@ -84,12 +84,9 @@ def symbolic_regression(
     start = timeit.default_timer()
 
     seed(seed_g)
-    feature_lenght = len(X[0])
     system_lenght = len(target[0])
 
-    features_names = FEATURES_NAMES or [f"X{i + 1}" for i in range(feature_lenght)]
-
-    X = [dict(zip(features_names, x)) for x in X]
+    features_names = FEATURES_NAMES or [list(X[0].keys()) for _ in range(system_lenght)]
 
     operations = (ADD, SUB, MUL, DIV, NEG)
 

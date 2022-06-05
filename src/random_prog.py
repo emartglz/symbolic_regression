@@ -72,11 +72,11 @@ def random_system(
         "func": system,
         "children": [
             random_edo_equation(
-                features_names=features_names,
+                features_names=features_names[i],
                 operations=operations,
                 MAX_DEPTH=MAX_DEPTH,
             )
-            for _ in range(system_lenght)
+            for i in range(system_lenght)
         ],
         "format_str": system_str,
     }

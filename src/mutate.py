@@ -220,7 +220,7 @@ def mutate_system(
 
     offspring["children"][edo_equation] = mutate_edo_equation(
         mutate_point=offspring["children"][edo_equation],
-        features_names=features_names,
+        features_names=features_names[edo_equation],
         operations=operations,
         MAX_DEPTH=MAX_DEPTH,
         VARIABLE_PROBABILITY=VARIABLE_PROBABILITY,
