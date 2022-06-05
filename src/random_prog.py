@@ -31,11 +31,11 @@ def random_operation_tree(depth, features_names, operations, MAX_DEPTH):
         return {"feature_name": features_names[randint(0, len(features_names) - 1)]}
 
 
-def random_edo_term(features_names, operations, MAX_DEPTH, MAX_CONSTANT):
+def random_edo_term(features_names, operations, MAX_DEPTH):
     return {
         "func": population_edo_term,
         "children": [
-            {"value": random() * MAX_CONSTANT},
+            {"value": 1},
             random_operation_tree(
                 depth=3,
                 features_names=features_names,
@@ -47,7 +47,7 @@ def random_edo_term(features_names, operations, MAX_DEPTH, MAX_CONSTANT):
     }
 
 
-def random_edo_equation(features_names, operations, MAX_DEPTH, MAX_CONSTANT):
+def random_edo_equation(features_names, operations, MAX_DEPTH):
     return {
         "func": population_edo_ecuation,
         "children": [
@@ -55,7 +55,6 @@ def random_edo_equation(features_names, operations, MAX_DEPTH, MAX_CONSTANT):
                 features_names=features_names,
                 operations=operations,
                 MAX_DEPTH=MAX_DEPTH,
-                MAX_CONSTANT=MAX_CONSTANT,
             )
             for _ in range(randint(1, MAX_DEPTH))
         ],
@@ -68,7 +67,6 @@ def random_system(
     operations,
     features_names,
     MAX_DEPTH,
-    MAX_CONSTANT,
 ):
     return {
         "func": system,
@@ -77,7 +75,6 @@ def random_system(
                 features_names=features_names,
                 operations=operations,
                 MAX_DEPTH=MAX_DEPTH,
-                MAX_CONSTANT=MAX_CONSTANT,
             )
             for _ in range(system_lenght)
         ],

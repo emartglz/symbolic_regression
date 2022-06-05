@@ -16,68 +16,70 @@ from src.utils import (
 )
 
 
-def get_random_parent(population, fitness, TOURNAMENT_SIZE):
-    # randomly select population members for the tournament
-    tournament_members = [
-        randint(0, len(population) - 1) for _ in range(TOURNAMENT_SIZE)
-    ]
-    # select tournament member with best fitness
-    member_fitness = [(fitness[i], population[i]) for i in tournament_members]
-    return min(member_fitness, key=lambda x: x[0])[1]
+def get_random_parent(population):
+    return population[randint(0, len(population) - 1)]
 
 
-def get_offspring(
+def get_mutate_population(
     population,
-    fitness,
+    MUTATION_SIZE,
     operations,
     features_names,
     MAX_DEPTH,
     VARIABLE_PROBABILITY,
-    MAX_CONSTANT,
     CHANGE_OPERATION_PROBABILITY,
     DELETE_NODE_PROBABILITY,
     ADD_OPERATION_PROBABILITY,
-    XOVER_PCT,
-    TOURNAMENT_SIZE,
 ):
-    parent1 = get_random_parent(population, fitness, TOURNAMENT_SIZE)
-    if random() < XOVER_PCT:
-        parent2 = get_random_parent(population, fitness, TOURNAMENT_SIZE)
-        return xover(parent1, parent2, MAX_DEPTH)
-    else:
-        return mutate_system(
-            selected=parent1,
-            operations=operations,
-            features_names=features_names,
-            MAX_DEPTH=MAX_DEPTH,
-            VARIABLE_PROBABILITY=VARIABLE_PROBABILITY,
-            CHANGE_OPERATION_PROBABILITY=CHANGE_OPERATION_PROBABILITY,
-            DELETE_NODE_PROBABILITY=DELETE_NODE_PROBABILITY,
-            ADD_OPERATION_PROBABILITY=ADD_OPERATION_PROBABILITY,
-            MAX_CONSTANT=MAX_CONSTANT,
+    mutations_populations = []
+    for _ in range(MUTATION_SIZE):
+        selected = get_random_parent(population)
+
+        mutations_populations.append(
+            mutate_system(
+                selected=selected,
+                operations=operations,
+                features_names=features_names,
+                MAX_DEPTH=MAX_DEPTH,
+                VARIABLE_PROBABILITY=VARIABLE_PROBABILITY,
+                CHANGE_OPERATION_PROBABILITY=CHANGE_OPERATION_PROBABILITY,
+                DELETE_NODE_PROBABILITY=DELETE_NODE_PROBABILITY,
+                ADD_OPERATION_PROBABILITY=ADD_OPERATION_PROBABILITY,
+            )
         )
+
+    return mutations_populations
+
+
+def get_xover_population(population, XOVER_SIZE, MAX_DEPTH):
+    xover_population = []
+    for _ in range(XOVER_SIZE):
+        parent1 = get_random_parent(population)
+        parent2 = get_random_parent(population)
+
+        xover_population.append(xover(parent1, parent2, MAX_DEPTH))
+
+    return xover_population
 
 
 def symbolic_regression(
     X,
     target,
     MAX_GENERATIONS=100,
-    N_GENERATION_OPTIMIZE=1,
     seed_g=random(),
     MAX_DEPTH=10,
     POP_SIZE=300,
     FEATURES_NAMES=None,
     VARIABLE_PROBABILITY=0.3,
-    MAX_CONSTANT=100,
     CHANGE_OPERATION_PROBABILITY=0.3,
     DELETE_NODE_PROBABILITY=0.3,
     ADD_OPERATION_PROBABILITY=0.4,
-    TOURNAMENT_SIZE=3,
-    XOVER_PCT=0.5,
+    XOVER_SIZE=100,
+    MUTATION_SIZE=100,
     REG_STRENGTH=5,
     EPSILON=1e-7,
-    PROPORTION_OF_BESTS=1 / 3,
     ROUND_SIZE=5,
+    verbose=False,
 ):
     start = timeit.default_timer()
 
@@ -97,24 +99,40 @@ def symbolic_regression(
             operations=operations,
             features_names=features_names,
             MAX_DEPTH=MAX_DEPTH,
-            MAX_CONSTANT=MAX_CONSTANT,
         )
         for _ in range(POP_SIZE)
     ]
 
     global_best = float("inf")
     gen = 0
-    while gen < MAX_GENERATIONS:
+    for gen in range(MAX_GENERATIONS):
+        mutations_population = get_mutate_population(
+            population=population,
+            MUTATION_SIZE=MUTATION_SIZE,
+            operations=operations,
+            features_names=features_names,
+            MAX_DEPTH=MAX_DEPTH,
+            VARIABLE_PROBABILITY=VARIABLE_PROBABILITY,
+            CHANGE_OPERATION_PROBABILITY=CHANGE_OPERATION_PROBABILITY,
+            DELETE_NODE_PROBABILITY=DELETE_NODE_PROBABILITY,
+            ADD_OPERATION_PROBABILITY=ADD_OPERATION_PROBABILITY,
+        )
+
+        xover_population = get_xover_population(
+            population=population, XOVER_SIZE=XOVER_SIZE, MAX_DEPTH=MAX_DEPTH
+        )
+
+        total_population = population + mutations_population + xover_population
+
         fitness = []
-        for i_prog, prog in enumerate(population):
-            print(f"{i_prog + 1}/{POP_SIZE}", end="\r")
+        for i_prog, prog in enumerate(total_population):
+            if verbose:
+                print(f"{i_prog + 1}/{len(total_population)}", end="\r")
 
             optimized_program = prog
-
-            if gen % N_GENERATION_OPTIMIZE == 0:
-                optimized_program = lineal_optimization_system(
-                    system=prog, X=X, target=target
-                )
+            optimized_program = lineal_optimization_system(
+                system=prog, X=X, target=target
+            )
 
             prediction = [evaluate(optimized_program, Xi) for Xi in X]
             score = compute_fitness(optimized_program, prediction, target, REG_STRENGTH)
@@ -127,51 +145,34 @@ def symbolic_regression(
 
         mean = sum(fitness) / len(fitness)
 
-        print(
-            f"Generation: {gen + 1}\nBest Score: {global_best}\nMean score: {mean}\nBest program:\n{render_prog(best_prog)}\n"
-        )
+        if verbose:
+            print(
+                f"Generation: {gen + 1}\nBest Score: {global_best}\nMean score: {mean}\nBest program:\n{render_prog(best_prog)}\n"
+            )
 
         if global_best < EPSILON:
             break
 
-        member_fitness = [(fitness[i], i, population[i]) for i in range(POP_SIZE)]
+        member_fitness = [
+            (fitness[i], i, total_population[i]) for i in range(len(total_population))
+        ]
         member_fitness.sort()
 
-        best_amount = int(POP_SIZE * PROPORTION_OF_BESTS)
-        population_next_gen = [i[2] for i in member_fitness[:best_amount]]
-        for i in range(best_amount, POP_SIZE):
-            population_next_gen.append(
-                get_offspring(
-                    population=population,
-                    fitness=fitness,
-                    operations=operations,
-                    features_names=features_names,
-                    MAX_DEPTH=MAX_DEPTH,
-                    VARIABLE_PROBABILITY=VARIABLE_PROBABILITY,
-                    MAX_CONSTANT=MAX_CONSTANT,
-                    CHANGE_OPERATION_PROBABILITY=CHANGE_OPERATION_PROBABILITY,
-                    DELETE_NODE_PROBABILITY=DELETE_NODE_PROBABILITY,
-                    ADD_OPERATION_PROBABILITY=ADD_OPERATION_PROBABILITY,
-                    XOVER_PCT=XOVER_PCT,
-                    TOURNAMENT_SIZE=TOURNAMENT_SIZE,
-                )
-            )
-
-        population = population_next_gen
-        gen += 1
+        population = [i[2] for i in member_fitness[:POP_SIZE]]
 
     best_prog = round_terms_edo_system(system=best_prog, ROUND_SIZE=ROUND_SIZE)
     best_prog = filter_zero_terms_edo_system(system=best_prog)
 
     prediction = [evaluate(best_prog, Xi) for Xi in X]
     score = compute_fitness(best_prog, prediction, target, REG_STRENGTH)
-
-    print(f"Generations : {gen + 1}")
-    print(f"Best score: {score}")
-    print(f"Best program:\n{render_prog(best_prog)}")
-
     stop = timeit.default_timer()
-    print("Time: ", stop - start)
+
+    if verbose:
+        print(f"Generations : {gen + 1}")
+        print(f"Best score: {score}")
+        print(f"Best program:\n{render_prog(best_prog)}")
+
+        print("Time: ", stop - start)
 
     return {
         "system": best_prog,
@@ -182,20 +183,17 @@ def symbolic_regression(
         "X": X,
         "target": target,
         "MAX_GENERATIONS": MAX_GENERATIONS,
-        "N_GENERATION_OPTIMIZE": N_GENERATION_OPTIMIZE,
         "seed_g": seed_g,
         "MAX_DEPTH": MAX_DEPTH,
         "POP_SIZE": POP_SIZE,
         "FEATURES_NAMES": features_names,
         "VARIABLE_PROBABILITY": VARIABLE_PROBABILITY,
-        "MAX_CONSTANT": MAX_CONSTANT,
         "CHANGE_OPERATION_PROBABILITY": CHANGE_OPERATION_PROBABILITY,
         "DELETE_NODE_PROBABILITY": DELETE_NODE_PROBABILITY,
         "ADD_OPERATION_PROBABILITY": ADD_OPERATION_PROBABILITY,
-        "TOURNAMENT_SIZE": TOURNAMENT_SIZE,
-        "XOVER_PCT": XOVER_PCT,
+        "XOVER_SIZE": XOVER_SIZE,
+        "MUTATION_SIZE": MUTATION_SIZE,
         "REG_STRENGTH": REG_STRENGTH,
         "EPSILON": EPSILON,
-        "PROPORTION_OF_BESTS": PROPORTION_OF_BESTS,
         "ROUND_SIZE": ROUND_SIZE,
     }

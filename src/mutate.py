@@ -154,7 +154,6 @@ def mutate_edo_equation(
     DELETE_NODE_PROBABILITY,
     ADD_OPERATION_PROBABILITY,
     CHANGE_OPERATION_PROBABILITY,
-    MAX_CONSTANT,
 ):
     offspring = deepcopy(mutate_point)
 
@@ -175,7 +174,6 @@ def mutate_edo_equation(
                     features_names=features_names,
                     operations=operations,
                     MAX_DEPTH=4,
-                    MAX_CONSTANT=MAX_CONSTANT,
                 )
             )
 
@@ -198,7 +196,6 @@ def mutate_edo_equation(
                 features_names=features_names,
                 operations=operations,
                 MAX_DEPTH=4,
-                MAX_CONSTANT=MAX_CONSTANT,
             )
         )
 
@@ -214,7 +211,6 @@ def mutate_system(
     CHANGE_OPERATION_PROBABILITY,
     DELETE_NODE_PROBABILITY,
     ADD_OPERATION_PROBABILITY,
-    MAX_CONSTANT,
 ):
     offspring = deepcopy(selected)
 
@@ -231,7 +227,6 @@ def mutate_system(
         DELETE_NODE_PROBABILITY=DELETE_NODE_PROBABILITY,
         ADD_OPERATION_PROBABILITY=ADD_OPERATION_PROBABILITY,
         CHANGE_OPERATION_PROBABILITY=CHANGE_OPERATION_PROBABILITY,
-        MAX_CONSTANT=MAX_CONSTANT,
     )
 
     return offspring
