@@ -61,7 +61,14 @@ def try_sird():
     Ds = take_n_samples_regular(samples, D)
 
     X_samples = [
-        {"t": ts[i], "S": Ss[i], "I": Is[i], "R": Rs[i], "D": Ds[i]}
+        {
+            "t": ts[i],
+            "S": Ss[i],
+            "I": Is[i],
+            "R": Rs[i],
+            "D": Ds[i],
+            "N": Ss[i] + Is[i] + Rs[i],
+        }
         for i in range(len(ts))
     ]
 
@@ -74,12 +81,12 @@ def try_sird():
         ode,
         seed_g=0,
         MAX_GENERATIONS=1000,
-        POP_SIZE=100,
-        FEATURES_NAMES=[["S", "I", "R"], ["S", "I", "R"], ["I"], ["I"]],
-        MUTATION_SIZE=200,
-        XOVER_SIZE=200,
-        MAX_DEPTH=15,
-        REG_STRENGTH=30,
+        POP_SIZE=500,
+        FEATURES_NAMES=[["S", "I", "N"], ["S", "I", "N"], ["I"], ["I"]],
+        MUTATION_SIZE=1000,
+        XOVER_SIZE=1000,
+        MAX_DEPTH=10,
+        REG_STRENGTH=50,
         verbose=True,
     )
 
@@ -87,7 +94,8 @@ def try_sird():
     save_results(results, "SIRD")
 
     integrate_gp = lambda X, t: evaluate(
-        best_system, {"t": t, "S": X[0], "I": X[1], "R": X[2], "D": X[3]}
+        best_system,
+        {"t": t, "S": X[0], "I": X[1], "R": X[2], "D": X[3], "N": X[0] + X[1] + X[2]},
     )
 
     SIR_gp, infodict = integrate.odeint(integrate_gp, X0, t, full_output=True)
