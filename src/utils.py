@@ -3,10 +3,9 @@ import json
 import marshal
 import base64
 import types
-
 import numpy as np
-
 from src.constants import ZERO
+import csv
 
 
 def constant_name_assign(selected, number=0, constant=[]):
@@ -184,3 +183,44 @@ def get_results(file_name):
     data["system"] = deserialize_system(offspring)
 
     return data
+
+
+def save_samples(X, target, file_name):
+    if not len(X) or len(target) != len(X):
+        return
+
+    target_dict = list(
+        map(lambda x: {f"target_{i+1}": x[i] for i in range(len(x))}, target)
+    )
+
+    with open(f"{file_name}.csv", "w", newline="") as csvfile:
+        fieldnames = list(X[0].keys())
+        fieldnames += list(target_dict[0].keys())
+
+        writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
+
+        writer.writeheader()
+        for i in range(len(X)):
+            writer.writerow({**X[i], **target_dict[i]})
+
+
+def load_samples(file_name):
+    X = []
+    target = []
+
+    with open(f"{file_name}.csv", newline="") as csvfile:
+        reader = csv.DictReader(csvfile)
+
+        for row in reader:
+            target_act = []
+            i = 1
+            while True:
+                if f"target_{i}" in row.keys():
+                    target_act.append(float(row.pop(f"target_{i}")))
+                    i += 1
+                else:
+                    break
+            target.append(target_act)
+            X.append({k: float(v) for k, v in row.items()})
+
+    return (X, target)
