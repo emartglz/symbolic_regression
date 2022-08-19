@@ -9,13 +9,15 @@ def xover(selected1, selected2, MAX_DEPTH):
     r = randint(0, len(selected1["children"]) - 1)
 
     offspring = deepcopy(selected1)
-    xover_point1, depth1 = select_random_node(
-        offspring["children"][r], offspring, 1, MAX_DEPTH
-    )
+    xover_point1, depth1 = select_random_node(offspring, 0, MAX_DEPTH)
 
     if depth1 == 0:
         xover_point1["children"][r] = selected2["children"][r]
-    elif depth1 == 1:
+        return offspring
+
+    xover_point1, depth1 = select_random_node(offspring["children"][r], 1, MAX_DEPTH)
+    if depth1 == 1:
+
         xover_point2 = selected2["children"][r]
 
         child_count1 = len(xover_point1["children"])
@@ -34,7 +36,7 @@ def xover(selected1, selected2, MAX_DEPTH):
                     xover_point2["children"][randint(0, child_count2 - 1)]
                 )
 
-    elif depth1 >= 2:
+    else:
         xover_point2 = selected2["children"][r]
 
         child_count1 = len(xover_point1["children"])
@@ -45,9 +47,8 @@ def xover(selected1, selected2, MAX_DEPTH):
             r2 = randint(0, child_count2 - 1)
 
             xover_point2, depth2 = select_random_node(
-                xover_point2["children"][r2]["children"][1],
                 xover_point2["children"][r2],
-                3,
+                2,
                 MAX_DEPTH,
             )
 

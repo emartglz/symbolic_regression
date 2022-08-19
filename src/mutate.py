@@ -93,7 +93,7 @@ def mutate_operation_tree(
     # offspring is operation
     else:
         mutate_node, depth = select_random_node(
-            offspring, offspring, depth=depth + 1, MAX_DEPTH=MAX_DEPTH
+            offspring, depth=depth + 1, MAX_DEPTH=MAX_DEPTH
         )
 
         mutate_node_children_count = len(mutate_node["children"])
