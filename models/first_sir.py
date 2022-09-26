@@ -80,3 +80,7 @@ def try_sir():
     plt.plot(t, R_gp, label="R symbolic regression")
     plt.legend()
     plt.show()
+
+
+if __name__ == "__main__":
+    try_sir()

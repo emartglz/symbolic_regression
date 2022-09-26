@@ -112,3 +112,7 @@ def try_sird():
     plt.plot(t, D_gp, ":", label="D symbolic regression")
     plt.legend()
     plt.show()
+
+
+if __name__ == "__main__":
+    try_sird()
