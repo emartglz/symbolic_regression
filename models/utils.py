@@ -5,8 +5,8 @@ from src.utils import take_n_samples_regular
 from scipy.interpolate import UnivariateSpline
 
 
-def add_noise(target, max_noise):
-    rng = np.random.default_rng()
+def add_noise(target, max_noise, seed=None):
+    rng = np.random.default_rng(seed)
 
     result = list(
         map(
@@ -43,27 +43,21 @@ def integrate_model(model, time, n, X0, *args):
     return (t, *variables)
 
 
-def get_data_from_model(
-    model,
-    X0,
-    time,
-    n,
-    samples,
-    symbolic_regression_samples,
-    noise,
+def get_data_from_samples(
+    t_total,
+    t_samples,
+    X_samples,
     smoothing_factor,
+    symbolic_regression_samples,
     variable_names,
-    *args
 ):
-    t, *X = integrate_model(model, time, n, X0, *args)
-
-    t_noise = take_n_samples_regular(samples, t)
-    X_noise = [add_noise(take_n_samples_regular(samples, x), noise) for x in X]
-
-    X_spline = [UnivariateSpline(t_noise, x, s=smoothing_factor) for x in X_noise]
+    X_spline = [
+        UnivariateSpline(t_samples, x, s=smoothing_factor[i])
+        for i, x in enumerate(X_samples)
+    ]
 
     t_simbolic_regression_samples = take_n_samples_regular(
-        symbolic_regression_samples, t
+        symbolic_regression_samples, t_total
     )
 
     X_samples = [
@@ -85,11 +79,34 @@ def get_data_from_model(
     ]
 
     return {
-        "t": t,
-        "X": X,
-        "t_noise": t_noise,
-        "X_noise": X_noise,
         "X_spline": X_spline,
         "X_samples": X_samples,
         "ode": ode,
     }
+
+
+def add_noise_and_get_data(
+    t,
+    X,
+    samples,
+    symbolic_regression_samples,
+    noise,
+    smoothing_factor,
+    variable_names,
+    noise_seed=None,
+):
+    t_noise = take_n_samples_regular(samples, t)
+    X_noise = [
+        add_noise(take_n_samples_regular(samples, x), noise, noise_seed) for x in X
+    ]
+
+    ret = get_data_from_samples(
+        t,
+        t_noise,
+        X_noise,
+        smoothing_factor,
+        symbolic_regression_samples,
+        variable_names,
+    )
+
+    return {**ret, **{"t": t, "X": X, "t_noise": t_noise, "X_noise": X_noise}}
