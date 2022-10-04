@@ -3,6 +3,7 @@ from sympy.plotting.textplot import linspace
 from scipy import integrate
 from src.utils import take_n_samples_regular
 from scipy.interpolate import UnivariateSpline
+import matplotlib.pyplot as plt
 
 
 def add_noise(target, max_noise, seed=None):
@@ -110,3 +111,60 @@ def add_noise_and_get_data(
     )
 
     return {**ret, **{"t": t, "X": X, "t_noise": t_noise, "X_noise": X_noise}}
+
+
+def plot_data(
+    variables_names,
+    t_samples=None,
+    samples=None,
+    t_noise=None,
+    samples_noise=None,
+    t_spline=None,
+    samples_spline=None,
+    t_symbolic_regression=None,
+    samples_symbolic_regression=None,
+    name=None,
+):
+    if samples:
+        for i, variable_name in enumerate(variables_names):
+            plt.plot(t_samples, samples[i], label=f"{variable_name} samples")
+
+    if samples_noise:
+        for i, variable_name in enumerate(variables_names):
+            plt.plot(
+                t_noise, samples_noise[i], ".", label=f"{variable_name} samples noise"
+            )
+    if samples_spline:
+        for i, variable_name in enumerate(variables_names):
+            plt.plot(
+                t_spline,
+                samples_spline[i],
+                "--",
+                label=f"{variable_name} samples spline",
+            )
+
+    if samples_symbolic_regression:
+        for i, variable_name in enumerate(variables_names):
+            plt.plot(
+                t_symbolic_regression,
+                samples_symbolic_regression[i],
+                "-.",
+                label=f"{variable_name} symbolic regression",
+            )
+
+    plt.legend()
+    if name:
+        plt.savefig(name)
+    plt.show()
+
+
+def separate_samples(variable_names, X_samples):
+    ret = []
+
+    for i in variable_names:
+        actual = []
+        for j in X_samples:
+            actual.append(j[i])
+        ret.append(actual)
+
+    return ret
