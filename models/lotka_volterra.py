@@ -23,16 +23,16 @@ def try_lotka_volterra():
     x1_0 = x2_0 = 20
     X0 = [x1_0, x2_0]
 
-    time = 300
+    time = 1000
     n = 100000
 
     samples = 300
-    symbolic_regression_samples = samples
+    symbolic_regression_samples = 300
 
-    noise = 0.1
+    noise = 0
     smoothing_factor = [
-        symbolic_regression_samples * 100,
-        symbolic_regression_samples * 1000,
+        0,
+        0,
     ]
 
     variable_names = ["t", "X1", "X2"]
@@ -68,10 +68,11 @@ def try_lotka_volterra():
         X_samples,
         ode,
         seed_g=0,
-        MAX_GENERATIONS=200,
+        MAX_GENERATIONS=100,
         POP_SIZE=100,
         XOVER_SIZE=50,
         MUTATION_SIZE=50,
+        RANDOM_SELECTION_SIZE=20,
         MAX_DEPTH=10,
         REG_STRENGTH=15,
         verbose=True,
