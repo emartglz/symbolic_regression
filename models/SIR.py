@@ -10,9 +10,7 @@ from src.utils import evaluate, save_results
 
 
 def sir_dx(X, t, a, b):
-    S = X[0]
-    I = X[1]
-    R = X[2]
+    S, I, R = X
 
     return [-a * I * S, a * I * S - b * I, b * I]
 
@@ -75,9 +73,9 @@ def try_sir():
         verbose=True,
     )
 
-    # results = get_results("SIR")
+    # results = get_results("models_jsons/SIR")
     best_system = results["system"]
-    save_results(results, "SIR")
+    save_results(results, "models_jsons/SIR")
 
     integrate_gp = lambda X, t: evaluate(
         best_system, {"t": t, "S": X[0], "I": X[1], "R": X[2]}

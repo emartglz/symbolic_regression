@@ -1,8 +1,14 @@
 from matplotlib import pyplot as plt
 from sympy.plotting.textplot import linspace
 from scipy import integrate
+from models.utils import (
+    add_noise_and_get_data,
+    integrate_model,
+    plot_data,
+    separate_samples,
+)
 from src.symbolic_regression import symbolic_regression
-from src.utils import evaluate, save_results, take_n_samples_regular
+from src.utils import evaluate, get_results, save_results, take_n_samples_regular
 
 # S Susceptible
 # I Infected
@@ -15,10 +21,7 @@ from src.utils import evaluate, save_results, take_n_samples_regular
 # II Birthrate
 # p rate of infection
 def zombie_dx(X, t, alpha, beta, delta, sita, II, p):
-    S = X[0]
-    I = X[1]
-    Z = X[2]
-    R = X[3]
+    S, I, Z, R = X
 
     D_S = II - beta * S * Z - delta * S
     D_I = beta * S * Z - p * I - delta * I
@@ -26,22 +29,6 @@ def zombie_dx(X, t, alpha, beta, delta, sita, II, p):
     D_R = delta * S + delta * I + alpha * S * Z - sita * R
 
     return [D_S, D_I, D_Z, D_R]
-
-
-def integrate_sir(time, samples, X0, alpha, beta, delta, sita, II, p):
-    t = linspace(0, time, samples)
-
-    X, infodict = integrate.odeint(
-        zombie_dx,
-        X0,
-        t,
-        (alpha, beta, delta, sita, II, p),
-        full_output=True,
-    )
-
-    X1, X2, X3, X4 = X.T
-
-    return (t, X1, X2, X3, X4)
 
 
 def try_zombie_SIZR():
@@ -58,66 +45,83 @@ def try_zombie_SIZR():
     n = 10000
 
     samples = 200
+    symbolic_regression_samples = samples
 
-    t, X1, X2, X3, X4 = integrate_sir(time, n, X0, alpha, beta, delta, sita, II, p)
-
-    ts = take_n_samples_regular(samples, t)
-    X1s = take_n_samples_regular(samples, X1)
-    X2s = take_n_samples_regular(samples, X2)
-    X3s = take_n_samples_regular(samples, X3)
-    X4s = take_n_samples_regular(samples, X4)
-
-    X_samples = [[ts[i], X1s[i], X2s[i], X3s[i], X4s[i]] for i in range(len(ts))]
-
-    ode = [
-        zombie_dx(
-            [X1s[i], X2s[i], X3s[i], X4s[i]],
-            ts[i],
-            alpha,
-            beta,
-            delta,
-            sita,
-            II,
-            p,
-        )
-        for i in range(len(ts))
+    noise = 0.1
+    smoothing_factor = [
+        symbolic_regression_samples * 100,
+        symbolic_regression_samples * 500,
+        symbolic_regression_samples * 10000,
+        symbolic_regression_samples * 1000,
     ]
+
+    variable_names = ["t", "S", "I", "Z", "R"]
+
+    t, *X = integrate_model(zombie_dx, time, n, X0, alpha, beta, delta, sita, II, p)
+
+    data = add_noise_and_get_data(
+        t,
+        X,
+        samples,
+        symbolic_regression_samples,
+        noise,
+        smoothing_factor,
+        variable_names,
+        0,
+    )
+    X_samples = data["X_samples"]
+    ode = data["ode"]
+
+    t_spline, *X_spline = separate_samples(variable_names, X_samples)
+
+    plot_data(
+        variables_names=variable_names[1:],
+        t_samples=data["t"],
+        samples=data["X"],
+        t_noise=data["t_noise"],
+        samples_noise=data["X_noise"],
+        t_spline=t_spline,
+        samples_spline=X_spline,
+    )
 
     results = symbolic_regression(
         X_samples,
         ode,
         seed_g=0,
-        FEATURES_NAMES=["t", "X0", "X1", "X2", "X3"],
-        MAX_GENERATIONS=1000,
-        N_GENERATION_OPTIMIZE=1,
-        POP_SIZE=1000,
-        TOURNAMENT_SIZE=1,
-        XOVER_PCT=0.5,
+        FEATURES_NAMES=["t", "S", "I", "Z", "R"],
+        MAX_GENERATIONS=100,
+        POP_SIZE=100,
+        XOVER_SIZE=50,
+        MUTATION_SIZE=50,
         MAX_DEPTH=10,
         REG_STRENGTH=40,
+        verbose=True,
     )
 
+    results = get_results("models_jsons/SIZR")
     best_system = results["system"]
-    save_results(results, "SIZR")
+    save_results(results, "models_jsons/SIZR")
 
     integrate_gp = lambda X, t: evaluate(
         best_system,
-        {"t": t, "X0": X[0], "X1": X[1], "X2": X[2], "X3": X[3]},
+        {"t": t, "S": X[0], "I": X[1], "Z": X[2], "R": X[3]},
     )
 
     X_gp, infodict = integrate.odeint(integrate_gp, X0, t, full_output=True)
+    X_gp = X_gp.T.tolist()
 
-    X1_gp, X2_gp, X3_gp, X4_gp = X_gp.T
+    plot_data(
+        variables_names=variable_names[1:],
+        t_samples=data["t"],
+        samples=data["X"],
+        t_noise=data["t_noise"],
+        samples_noise=data["X_noise"],
+        t_spline=t_spline,
+        samples_spline=X_spline,
+        t_symbolic_regression=t,
+        samples_symbolic_regression=X_gp,
+    )
 
-    plt.plot(t, X1, label="Susceptible population")
-    plt.plot(t, X2, label="Infected population")
-    plt.plot(t, X3, label="Zombie population")
-    plt.plot(t, X4, label="Removed population")
 
-    plt.plot(t, X1_gp, label="Susceptible population symbolic regression")
-    plt.plot(t, X2_gp, label="Infected population symbolic regression")
-    plt.plot(t, X3_gp, label="Zombie population symbolic regression")
-    plt.plot(t, X4_gp, label="Removed population symbolic regression")
-
-    plt.legend()
-    plt.show()
+if __name__ == "__main__":
+    try_zombie_SIZR()

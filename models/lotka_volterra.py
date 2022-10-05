@@ -77,9 +77,9 @@ def try_lotka_volterra():
         verbose=True,
     )
 
-    # results = get_results("LV")
+    # results = get_results("models_jsons/LV")
     best_system = results["system"]
-    save_results(results, "LV")
+    save_results(results, "models_jsons/LV")
 
     integrate_gp = lambda X, t: evaluate(best_system, {"t": t, "X1": X[0], "X2": X[1]})
     X_gp, infodict = integrate.odeint(integrate_gp, X0, t, full_output=True)
