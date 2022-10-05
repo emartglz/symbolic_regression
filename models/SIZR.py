@@ -98,7 +98,7 @@ def try_zombie_SIZR():
         verbose=True,
     )
 
-    results = get_results("models_jsons/SIZR")
+    # results = get_results("models_jsons/SIZR")
     best_system = results["system"]
     save_results(results, "models_jsons/SIZR")
 
