@@ -1,3 +1,5 @@
+import os
+import sys
 from matplotlib import pyplot as plt
 from sympy.plotting.textplot import linspace
 from scipy import integrate
@@ -25,7 +27,7 @@ def sird_dx(X, t, a, b, c, d):
     return [S_d, I_d, R_d, D_d]
 
 
-def try_sird():
+def try_sird(noise, seed, name, save_to):
     a = 250
     b = 0.5
     c = 0.1
@@ -39,7 +41,7 @@ def try_sird():
     samples = 200
     symbolic_regression_samples = samples
 
-    noise = 0.1
+    # noise = 0.1
     smoothing_factor = [
         symbolic_regression_samples * 1000000,
         symbolic_regression_samples * 100000,
@@ -59,7 +61,7 @@ def try_sird():
         noise,
         smoothing_factor,
         variable_names,
-        0,
+        seed,
     )
     X_samples = data["X_samples"]
     ode = data["ode"]
@@ -74,6 +76,7 @@ def try_sird():
         samples_noise=data["X_noise"],
         t_spline=t_spline,
         samples_spline=X_spline,
+        name=f"{save_to}/initial_plot_{name}.svg",
     )
 
     for i in X_samples:
@@ -82,7 +85,7 @@ def try_sird():
     results = symbolic_regression(
         X_samples,
         ode,
-        seed_g=0,
+        seed_g=seed,
         MAX_GENERATIONS=100,
         POP_SIZE=100,
         FEATURES_NAMES=[["S", "I", "N"], ["S", "I", "N"], ["I"], ["I"]],
@@ -90,12 +93,12 @@ def try_sird():
         XOVER_SIZE=50,
         MAX_DEPTH=10,
         REG_STRENGTH=50,
-        verbose=True,
+        # verbose=True,
     )
 
     # results = get_results("models_jsons/SIRD")
     best_system = results["system"]
-    save_results(results, "models_jsons/SIRD")
+    save_results(results, f"{save_to}/SIRD_{name}")
 
     integrate_gp = lambda X, t: evaluate(
         best_system,
@@ -109,14 +112,25 @@ def try_sird():
         variables_names=variable_names[1:],
         t_samples=data["t"],
         samples=data["X"],
-        t_noise=data["t_noise"],
-        samples_noise=data["X_noise"],
-        t_spline=t_spline,
-        samples_spline=X_spline,
+        # t_noise=data["t_noise"],
+        # samples_noise=data["X_noise"],
+        # t_spline=t_spline,
+        # samples_spline=X_spline,
         t_symbolic_regression=t,
         samples_symbolic_regression=X_gp,
+        name=f"{save_to}/final_plot_{name}.svg",
     )
 
 
 if __name__ == "__main__":
-    try_sird()
+    r = 30
+    noise = float(sys.argv[1])
+
+    save_to = f"RESULTS/SIRD/noise_{noise}"
+
+    if not os.path.exists(save_to):
+        os.makedirs(save_to)
+
+    for i in range(r):
+        print(i)
+        try_sird(noise, i, f"{i}", save_to)
