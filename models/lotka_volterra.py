@@ -1,3 +1,4 @@
+import os
 from matplotlib import pyplot as plt
 from scipy import integrate
 from models.utils import (
@@ -8,13 +9,14 @@ from models.utils import (
 )
 from src.symbolic_regression import symbolic_regression
 from src.utils import evaluate, get_results, save_results
+import sys
 
 
 def lotka_volterra_dx(X, t, a, b, c, d):
     return [X[0] * (a - b * X[1]), -X[1] * (c - d * X[0])]
 
 
-def try_lotka_volterra():
+def try_lotka_volterra(noise, seed, name, save_to):
     a = 0.04
     b = 0.0005
     c = 0.2
@@ -29,10 +31,10 @@ def try_lotka_volterra():
     samples = 300
     symbolic_regression_samples = 300
 
-    noise = 0
+    # noise = 0
     smoothing_factor = [
-        0,
-        0,
+        samples * 100,
+        samples * 1000,
     ]
 
     variable_names = ["t", "X1", "X2"]
@@ -47,7 +49,7 @@ def try_lotka_volterra():
         noise,
         smoothing_factor,
         variable_names,
-        0,
+        seed,
     )
     X_samples = data["X_samples"]
     ode = data["ode"]
@@ -62,12 +64,13 @@ def try_lotka_volterra():
         samples_noise=data["X_noise"],
         t_spline=t_spline,
         samples_spline=X_spline,
+        name=f"{save_to}/initial_plot_{name}.svg",
     )
 
     results = symbolic_regression(
         X_samples,
         ode,
-        seed_g=0,
+        seed_g=seed,
         MAX_GENERATIONS=100,
         POP_SIZE=100,
         XOVER_SIZE=50,
@@ -75,12 +78,12 @@ def try_lotka_volterra():
         RANDOM_SELECTION_SIZE=20,
         MAX_DEPTH=10,
         REG_STRENGTH=15,
-        verbose=True,
+        # verbose=True,
     )
 
     # results = get_results("models_jsons/LV")
     best_system = results["system"]
-    save_results(results, "models_jsons/LV")
+    save_results(results, f"{save_to}/LV_{name}")
 
     integrate_gp = lambda X, t: evaluate(best_system, {"t": t, "X1": X[0], "X2": X[1]})
     X_gp, infodict = integrate.odeint(integrate_gp, X0, t, full_output=True)
@@ -90,14 +93,25 @@ def try_lotka_volterra():
         variables_names=variable_names[1:],
         t_samples=data["t"],
         samples=data["X"],
-        t_noise=data["t_noise"],
-        samples_noise=data["X_noise"],
-        t_spline=t_spline,
-        samples_spline=X_spline,
+        # t_noise=data["t_noise"],
+        # samples_noise=data["X_noise"],
+        # t_spline=t_spline,
+        # samples_spline=X_spline,
         t_symbolic_regression=t,
         samples_symbolic_regression=X_gp,
+        name=f"{save_to}/final_plot_{name}.svg",
     )
 
 
 if __name__ == "__main__":
-    try_lotka_volterra()
+    r = 30
+    noise = float(sys.argv[1])
+
+    save_to = f"RESULTS/LV/noise_{noise}"
+
+    if not os.path.exists(save_to):
+        os.makedirs(save_to)
+
+    for i in range(r):
+        print(i)
+        try_lotka_volterra(noise, i, f"{i}", save_to)
