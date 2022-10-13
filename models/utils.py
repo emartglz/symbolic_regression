@@ -125,6 +125,10 @@ def plot_data(
     samples_symbolic_regression=None,
     name=None,
 ):
+    plt.clf()
+    figure = plt.gcf()
+    figure.set_size_inches(15, 8)
+
     if samples:
         for i, variable_name in enumerate(variables_names):
             plt.plot(t_samples, samples[i], label=f"{variable_name} samples")
@@ -154,7 +158,10 @@ def plot_data(
 
     plt.legend()
     if name:
-        plt.savefig(name)
+        plt.savefig(
+            name,
+        )
+        return
     plt.show()
 
 
