@@ -38,16 +38,11 @@ def try_sird(noise, seed, name, save_to):
     time = 20
     n = 10000
 
-    samples = 200
+    samples = 300
     symbolic_regression_samples = samples
 
     # noise = 0.1
-    smoothing_factor = [
-        symbolic_regression_samples * 1000000,
-        symbolic_regression_samples * 100000,
-        symbolic_regression_samples * 100000,
-        symbolic_regression_samples * 1000000,
-    ]
+    smoothing_factor = [1] * 4
 
     variable_names = ["t", "S", "I", "R", "D"]
 
@@ -92,8 +87,7 @@ def try_sird(noise, seed, name, save_to):
         MUTATION_SIZE=50,
         XOVER_SIZE=50,
         MAX_DEPTH=10,
-        REG_STRENGTH=50,
-        # verbose=True,
+        REG_STRENGTH=30,
     )
 
     # results = get_results("models_jsons/SIRD")
