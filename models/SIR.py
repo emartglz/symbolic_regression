@@ -26,11 +26,11 @@ def try_sir(noise, seed, name, save_to):
     time = 20
     n = 10000
 
-    samples = 200
+    samples = 300
     symbolic_regression_samples = samples
 
     # noise = 0.1
-    smoothing_factor = [symbolic_regression_samples * 10000] * 3
+    smoothing_factor = [1] * 3
 
     variable_names = ["t", "S", "I", "R"]
 
