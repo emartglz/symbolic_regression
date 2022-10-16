@@ -2,7 +2,7 @@ import numpy as np
 from sympy.plotting.textplot import linspace
 from scipy import integrate
 from src.utils import take_n_samples_regular
-from scipy.interpolate import UnivariateSpline
+from csaps import csaps
 import matplotlib.pyplot as plt
 
 
@@ -53,7 +53,7 @@ def get_data_from_samples(
     variable_names,
 ):
     X_spline = [
-        UnivariateSpline(t_samples, x, s=smoothing_factor[i])
+        csaps(t_samples, x, smooth=smoothing_factor[i]).spline
         for i, x in enumerate(X_samples)
     ]
 
@@ -72,7 +72,7 @@ def get_data_from_samples(
         for i in t_simbolic_regression_samples
     ]
 
-    X_spline_derivate = [x.derivative() for x in X_spline]
+    X_spline_derivate = [x.derivative(nu=1) for x in X_spline]
 
     ode = [
         [dx(i).item() for dx in X_spline_derivate]
