@@ -25,17 +25,14 @@ def try_lotka_volterra(noise, seed, name, save_to):
     x1_0 = x2_0 = 20
     X0 = [x1_0, x2_0]
 
-    time = 1000
+    time = 300
     n = 100000
 
     samples = 300
     symbolic_regression_samples = 300
 
     # noise = 0
-    smoothing_factor = [
-        samples * 100,
-        samples * 1000,
-    ]
+    smoothing_factor = [1, 1]
 
     variable_names = ["t", "X1", "X2"]
 
