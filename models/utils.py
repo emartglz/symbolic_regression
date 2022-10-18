@@ -57,7 +57,7 @@ def get_data_from_samples(
         for i, x in enumerate(X_samples)
     ]
 
-    t_simbolic_regression_samples = take_n_samples_regular(
+    t_symbolic_regression_samples = take_n_samples_regular(
         symbolic_regression_samples, t_total
     )
 
@@ -69,14 +69,14 @@ def get_data_from_samples(
                 for j in range(len(variable_names[1:]))
             },
         }
-        for i in t_simbolic_regression_samples
+        for i in t_symbolic_regression_samples
     ]
 
     X_spline_derivate = [x.derivative(nu=1) for x in X_spline]
 
     ode = [
         [dx(i).item() for dx in X_spline_derivate]
-        for i in t_simbolic_regression_samples
+        for i in t_symbolic_regression_samples
     ]
 
     return {
