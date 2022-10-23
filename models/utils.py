@@ -175,3 +175,12 @@ def separate_samples(variable_names, X_samples):
         ret.append(actual)
 
     return ret
+
+
+def join_samples(variables_names, X_samples):
+    ret = [
+        {variables_names[j]: X_samples[j][i] for j in range(len(variables_names))}
+        for i in range(len(X_samples[0]))
+    ]
+
+    return ret
