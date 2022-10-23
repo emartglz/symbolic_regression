@@ -4,11 +4,12 @@ from scipy import integrate
 from models.utils import (
     add_noise_and_get_data,
     integrate_model,
+    join_samples,
     plot_data,
     separate_samples,
 )
 from src.symbolic_regression import symbolic_regression
-from src.utils import evaluate, get_results, save_results
+from src.utils import evaluate, get_results, save_results, save_samples
 import sys
 
 
@@ -34,7 +35,7 @@ def try_lotka_volterra(noise, seed, name, save_to):
     # noise = 0
     smoothing_factor = [1, 1]
 
-    variable_names = ["t", "X1", "X2"]
+    variable_names = ["t", "X", "Y"]
 
     t, *X = integrate_model(lotka_volterra_dx, time, n, X0, a, b, c, d)
 
@@ -52,6 +53,11 @@ def try_lotka_volterra(noise, seed, name, save_to):
     ode = data["ode"]
 
     t_spline, *X_spline = separate_samples(variable_names, X_samples)
+
+    save_samples(
+        join_samples(variable_names, [data["t_noise"]] + data["X_noise"]),
+        f"{save_to}/data_{name}",
+    )
 
     plot_data(
         variables_names=variable_names[1:],
@@ -82,7 +88,7 @@ def try_lotka_volterra(noise, seed, name, save_to):
     best_system = results["system"]
     save_results(results, f"{save_to}/LV_{name}")
 
-    integrate_gp = lambda X, t: evaluate(best_system, {"t": t, "X1": X[0], "X2": X[1]})
+    integrate_gp = lambda X, t: evaluate(best_system, {"t": t, "X": X[0], "Y": X[1]})
     X_gp, infodict = integrate.odeint(integrate_gp, X0, t, full_output=True)
     X_gp = X_gp.T.tolist()
 

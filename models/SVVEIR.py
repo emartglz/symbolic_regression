@@ -4,11 +4,12 @@ from scipy import integrate
 from models.utils import (
     add_noise_and_get_data,
     integrate_model,
+    join_samples,
     plot_data,
     separate_samples,
 )
 from src.symbolic_regression import symbolic_regression
-from src.utils import evaluate, get_results, save_results
+from src.utils import evaluate, get_results, save_results, save_samples
 
 
 def svveir_system(X, t, alpha, beta, delta, gamma, mu, n, roh, omega, sigma):
@@ -89,6 +90,11 @@ def try_svveir(noise, seed, name, save_to):
     ode = data["ode"]
 
     t_spline, *X_spline = separate_samples(variable_names, X_samples)
+
+    save_samples(
+        join_samples(variable_names, [data["t_noise"]] + data["X_noise"]),
+        f"{save_to}/data_{name}",
+    )
 
     plot_data(
         variables_names=variable_names[1:],
