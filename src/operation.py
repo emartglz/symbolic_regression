@@ -2,7 +2,11 @@ from src.constants import ZERO
 
 
 def safe_div(a, b):
-    return a / b if abs(b) >= ZERO else a if abs(b) >= ZERO else 1
+    if abs(b) >= ZERO:
+        return a / b
+    elif abs(a) >= ZERO:
+        return a
+    return 1
 
 
 ADD = {
