@@ -158,7 +158,7 @@ def symbolic_regression(
 
         population = [
             i[2] for i in member_fitness[: (POP_SIZE - RANDOM_SELECTION_SIZE)]
-        ] + [get_random_parent(population) for i in range(RANDOM_SELECTION_SIZE)]
+        ] + [get_random_parent(total_population) for i in range(RANDOM_SELECTION_SIZE)]
 
     best_prog = round_terms_edo_system(system=best_prog, ROUND_SIZE=ROUND_SIZE)
     best_prog = filter_zero_terms_edo_system(system=best_prog)
