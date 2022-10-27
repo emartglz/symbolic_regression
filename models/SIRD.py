@@ -1,17 +1,6 @@
 import os
 import sys
-from matplotlib import pyplot as plt
-from sympy.plotting.textplot import linspace
-from scipy import integrate
-from models.utils import (
-    add_noise_and_get_data,
-    integrate_model,
-    join_samples,
-    plot_data,
-    separate_samples,
-)
-from src.symbolic_regression import symbolic_regression
-from src.utils import evaluate, get_results, save_results, save_samples
+from models.utils import make_experiment
 
 # S' = a - b* S * I/(S+I+R)
 # I' = b* S * I/(S+I+R) - c * I - d * I
@@ -28,7 +17,7 @@ def sird_dx(X, t, a, b, c, d):
     return [S_d, I_d, R_d, D_d]
 
 
-def try_sird(noise, seed, name, save_to):
+def try_sird(noise, seed, name, save_to, samples=None):
     a = 250
     b = 0.5
     c = 0.1
@@ -40,97 +29,77 @@ def try_sird(noise, seed, name, save_to):
     n = 10000
 
     samples = 300
-    symbolic_regression_samples = samples
 
-    # noise = 0.1
     smoothing_factor = [1] * 4
 
     variable_names = ["t", "S", "I", "R", "D"]
 
-    t, *X = integrate_model(sird_dx, time, n, X0, a, b, c, d)
-
-    data = add_noise_and_get_data(
-        t,
-        X,
-        samples,
-        symbolic_regression_samples,
-        noise,
-        smoothing_factor,
+    make_experiment(
+        sird_dx,
+        X0,
         variable_names,
+        smoothing_factor,
+        noise,
         seed,
-    )
-    X_samples = data["X_samples"]
-    ode = data["ode"]
-
-    t_spline, *X_spline = separate_samples(variable_names, X_samples)
-
-    save_samples(
-        join_samples(variable_names, [data["t_noise"]] + data["X_noise"]),
-        f"{save_to}/data_{name}",
-    )
-
-    plot_data(
-        variables_names=variable_names[1:],
-        t_samples=data["t"],
-        samples=data["X"],
-        t_noise=data["t_noise"],
-        samples_noise=data["X_noise"],
-        t_spline=t_spline,
-        samples_spline=X_spline,
-        name=f"{save_to}/initial_plot_{name}.svg",
+        name,
+        save_to,
+        [a, b, c, d],
+        {
+            "MAX_GENERATIONS": 100,
+            "POP_SIZE": 100,
+            "FEATURES_NAMES": [["S", "I", "N"], ["S", "I", "N"], ["I"], ["I"]],
+            "MUTATION_SIZE": 50,
+            "XOVER_SIZE": 50,
+            "MAX_DEPTH": 10,
+            "REG_STRENGTH": 30,
+            "RANDOM_SELECTION_SIZE": 10,
+            # "verbose": True,
+        },
+        add_N=True,
+        time=time,
+        samples=samples,
     )
 
-    for i in X_samples:
-        i["N"] = i["S"] + i["I"] + i["R"]
 
-    results = symbolic_regression(
-        X_samples,
-        ode,
-        seed_g=seed,
-        MAX_GENERATIONS=100,
-        POP_SIZE=100,
-        FEATURES_NAMES=[["S", "I", "N"], ["S", "I", "N"], ["I"], ["I"]],
-        MUTATION_SIZE=50,
-        XOVER_SIZE=50,
-        MAX_DEPTH=10,
-        REG_STRENGTH=30,
-    )
-
-    # results = get_results("models_jsons/SIRD")
-    best_system = results["system"]
-    save_results(results, f"{save_to}/SIRD_{name}")
-
-    integrate_gp = lambda X, t: evaluate(
-        best_system,
-        {"t": t, "S": X[0], "I": X[1], "R": X[2], "D": X[3], "N": X[0] + X[1] + X[2]},
-    )
-
-    X_gp, infodict = integrate.odeint(integrate_gp, X0, t, full_output=True)
-    X_gp = X_gp.T.tolist()
-
-    plot_data(
-        variables_names=variable_names[1:],
-        t_samples=data["t"],
-        samples=data["X"],
-        # t_noise=data["t_noise"],
-        # samples_noise=data["X_noise"],
-        # t_spline=t_spline,
-        # samples_spline=X_spline,
-        t_symbolic_regression=t,
-        samples_symbolic_regression=X_gp,
-        name=f"{save_to}/final_plot_{name}.svg",
-    )
+# def try_interval(a, b, noise, save_to):
+#     for i in range(a, b):
+#         j = i * 10
+#         print(j)
+#         try_sird(noise, 0, f"{j}", save_to, j)
 
 
 if __name__ == "__main__":
-    r = 30
     noise = float(sys.argv[1])
 
     save_to = f"RESULTS/SIRD/noise_{noise}"
+    # save_to = f"SAMPLES_TEST/SIRD/noise_{noise}"
 
     if not os.path.exists(save_to):
         os.makedirs(save_to)
 
+    # repetir a partir del 60
+    # import multiprocessing
+
+    # # max_jobs = 16
+    # b = 15
+    # a = 1
+    # ran = b - a
+    # # step_size = int(ran / max_jobs) + 1
+    # step_size = 1
+    # i = a
+
+    # jobs = []
+    # while i <= b:
+    #     jobs.append(
+    #         multiprocessing.Process(
+    #             target=try_interval,
+    #             args=(i, i + step_size, noise, save_to),
+    #         )
+    #     )
+    #     i += step_size
+    #     jobs[-1].start()
+
+    r = 30
     for i in range(r):
         print(i)
         try_sird(noise, i, f"{i}", save_to)
