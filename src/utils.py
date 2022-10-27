@@ -209,3 +209,36 @@ def load_samples(file_name):
             X.append({k: float(v) for k, v in row.items()})
 
     return X
+
+
+def group_without_names(X):
+    result = []
+    for i in range(len(X[0])):
+        result_i = []
+        for j in range(len(X)):
+            result_i.append(X[j][i])
+
+        result.append(result_i)
+
+    return result
+
+
+def group_with_names(X, variable_names):
+    ret = [
+        {variable_names[j]: X[j][i] for j in range(len(variable_names))}
+        for i in range(len(X[0]))
+    ]
+
+    return ret
+
+
+def separate_samples(variable_names, X_samples):
+    ret = []
+
+    for i in variable_names:
+        actual = []
+        for j in X_samples:
+            actual.append(j[i])
+        ret.append(actual)
+
+    return ret

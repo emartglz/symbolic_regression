@@ -1,116 +1,33 @@
 import numpy as np
 from sympy.plotting.textplot import linspace
 from scipy import integrate
-from src.utils import take_n_samples_regular
-from csaps import csaps
 import matplotlib.pyplot as plt
-
-
-def add_noise(target, max_noise, seed=None):
-    rng = np.random.default_rng(seed)
-
-    result = list(
-        map(
-            lambda y: (y + y * max_noise * rng.standard_normal(1)).item(),
-            target,
-        )
-    )
-
-    return result
-
-
-def derivate(x, y):
-    result = []
-    for i in range(len(y)):
-        if i == len(y) - 1:
-            break
-
-        result_i = []
-        for j in range(len(y[i])):
-            result_i.append((y[i + 1][j] - y[i][j]) / (x[i + 1] - x[i]))
-
-        result.append(result_i)
-
-    return result
+from src.symbolic_regression import symbolic_regression
+from src.utils import (
+    evaluate,
+    group_with_names,
+    save_results,
+    save_samples,
+    take_n_samples_regular,
+)
 
 
 def integrate_model(model, time, n, X0, *args):
     t = linspace(0, time, n)
 
-    X, infodict = integrate.odeint(model, X0, t, args, full_output=True)
+    X, _ = integrate.odeint(model, X0, t, args, full_output=True)
 
     variables = X.T
 
     return (t, *variables)
 
 
-def get_data_from_samples(
-    t_total,
-    t_samples,
-    X_samples,
-    smoothing_factor,
-    symbolic_regression_samples,
-    variable_names,
-):
-    X_spline = [
-        csaps(t_samples, x, smooth=smoothing_factor[i]).spline
-        for i, x in enumerate(X_samples)
-    ]
+def add_noise(target, max_noise, seed=None):
+    rng = np.random.default_rng(seed)
 
-    t_symbolic_regression_samples = take_n_samples_regular(
-        symbolic_regression_samples, t_total
-    )
+    result = [(y + y * max_noise * rng.standard_normal(1)).item() for y in target]
 
-    X_samples = [
-        {
-            **{variable_names[0]: i},
-            **{
-                variable_names[j + 1]: X_spline[j](i).item()
-                for j in range(len(variable_names[1:]))
-            },
-        }
-        for i in t_symbolic_regression_samples
-    ]
-
-    X_spline_derivate = [x.derivative(nu=1) for x in X_spline]
-
-    ode = [
-        [dx(i).item() for dx in X_spline_derivate]
-        for i in t_symbolic_regression_samples
-    ]
-
-    return {
-        "X_spline": X_spline,
-        "X_samples": X_samples,
-        "ode": ode,
-    }
-
-
-def add_noise_and_get_data(
-    t,
-    X,
-    samples,
-    symbolic_regression_samples,
-    noise,
-    smoothing_factor,
-    variable_names,
-    noise_seed=None,
-):
-    t_noise = take_n_samples_regular(samples, t)
-    X_noise = [
-        add_noise(take_n_samples_regular(samples, x), noise, noise_seed) for x in X
-    ]
-
-    ret = get_data_from_samples(
-        t,
-        t_noise,
-        X_noise,
-        smoothing_factor,
-        symbolic_regression_samples,
-        variable_names,
-    )
-
-    return {**ret, **{"t": t, "X": X, "t_noise": t_noise, "X_noise": X_noise}}
+    return result
 
 
 def plot_data(
@@ -165,22 +82,68 @@ def plot_data(
     plt.show()
 
 
-def separate_samples(variable_names, X_samples):
-    ret = []
+def make_experiment(
+    model,
+    X0,
+    variable_names,
+    smoothing_factor,
+    noise,
+    seed,
+    name,
+    save_to,
+    params,
+    genetic_params,
+    time=300,
+    n=100000,
+    samples=300,
+):
+    t, *X = integrate_model(model, time, n, X0, *params)
 
-    for i in variable_names:
-        actual = []
-        for j in X_samples:
-            actual.append(j[i])
-        ret.append(actual)
+    t_samples, *X_samples = [take_n_samples_regular(samples, i) for i in [t, *X]]
+    X_noise = [add_noise(x, noise, seed) for x in X_samples]
 
-    return ret
+    save_samples(
+        group_with_names([t_samples, *X_noise], variable_names),
+        f"{save_to}/data_{name}",
+    )
 
+    plot_data(
+        variables_names=variable_names[1:],
+        t_samples=t_samples,
+        samples=X_samples,
+        t_noise=t_samples,
+        samples_noise=X_noise,
+        name=f"{save_to}/initial_plot_{name}.pdf",
+    )
 
-def join_samples(variables_names, X_samples):
-    ret = [
-        {variables_names[j]: X_samples[j][i] for j in range(len(variables_names))}
-        for i in range(len(X_samples[0]))
-    ]
+    results = symbolic_regression(
+        [t_samples, *X_noise],
+        variable_names,
+        smoothing_factor,
+        seed_g=seed,
+        **genetic_params,
+    )
 
-    return ret
+    # results = get_results("models_jsons/LV")
+    best_system = results["system"]
+    save_results(results, f"{save_to}/LV_{name}")
+
+    integrate_gp = lambda X, t: evaluate(
+        best_system,
+        {**{"t": t}, **{v_name: X[i] for i, v_name in enumerate(variable_names[1:])}},
+    )
+    X_gp, _ = integrate.odeint(integrate_gp, X0, t, full_output=True)
+    X_gp = X_gp.T.tolist()
+
+    plot_data(
+        variables_names=variable_names[1:],
+        t_samples=t_samples,
+        samples=X_samples,
+        # t_noise=data["t_noise"],
+        # samples_noise=data["X_noise"],
+        # t_spline=t_spline,
+        # samples_spline=X_spline,
+        t_symbolic_regression=t,
+        samples_symbolic_regression=X_gp,
+        name=f"{save_to}/final_plot_{name}.svg",
+    )
