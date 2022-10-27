@@ -8,6 +8,7 @@ from src.utils import (
     group_with_names,
     save_results,
     save_samples,
+    separate_samples,
     take_n_samples_regular,
 )
 
@@ -108,15 +109,6 @@ def make_experiment(
         f"{save_to}/data_{name}",
     )
 
-    plot_data(
-        variables_names=variable_names[1:],
-        t_samples=t_samples,
-        samples=X_samples,
-        t_noise=t_samples,
-        samples_noise=X_noise,
-        name=f"{save_to}/initial_plot_{name}.pdf",
-    )
-
     results = symbolic_regression(
         [t_samples, *X_noise],
         variable_names,
@@ -126,9 +118,9 @@ def make_experiment(
         **genetic_params,
     )
 
-    # results = get_results("models_jsons/LV")
+    # results = get_results(f"{save_to}/{name}")
     best_system = results["system"]
-    save_results(results, f"{save_to}/LV_{name}")
+    save_results(results, f"{save_to}/{name}")
 
     def evaluate_symbolic_regression(X, t):
         d = {
@@ -142,15 +134,24 @@ def make_experiment(
     X_gp, _ = integrate.odeint(evaluate_symbolic_regression, X0, t, full_output=True)
     X_gp = X_gp.T.tolist()
 
+    t_spline, *X_spline = separate_samples(variable_names, results["X"])
+
     plot_data(
         variables_names=variable_names[1:],
         t_samples=t_samples,
         samples=X_samples,
-        # t_noise=data["t_noise"],
-        # samples_noise=data["X_noise"],
-        # t_spline=t_spline,
-        # samples_spline=X_spline,
+        t_noise=t_samples,
+        samples_noise=X_noise,
+        t_spline=t_spline,
+        samples_spline=X_spline,
+        name=f"{save_to}/initial_plot_{name}.pdf",
+    )
+
+    plot_data(
+        variables_names=variable_names[1:],
+        t_samples=t_samples,
+        samples=X_samples,
         t_symbolic_regression=t,
         samples_symbolic_regression=X_gp,
-        name=f"{save_to}/final_plot_{name}.svg",
+        name=f"{save_to}/final_plot_{name}.pdf",
     )
