@@ -26,7 +26,7 @@ def smoothing_spline(x, y, smoothing_factor):
         for j in x[:-1]:
             result_i.append(y_spline[i](j).item())
 
-        result.appen(result_i)
+        result.append(result_i)
 
     return result
 
