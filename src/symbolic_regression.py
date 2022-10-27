@@ -2,6 +2,7 @@ from random import randint, random, seed
 from src.aproximation import generate_dx
 from src.genetic_algorithm import genetic_algorithm
 from src.utils import group_with_names, group_without_names
+from matplotlib import pyplot as plt
 
 
 def symbolic_regression(
@@ -25,12 +26,26 @@ def symbolic_regression(
     EPSILON=1e-7,
     ROUND_SIZE=5,
     verbose=False,
+    show_spline=False,
 ):
 
     X_less_last_element = [x[:-1] for x in X]
     X_samples = group_with_names(X_less_last_element, variable_names)
-    target = group_without_names(generate_dx(X[0], X[1:], smoothing_factor))
 
+    X_dx = generate_dx(X[0], X[1:], smoothing_factor)
+
+    if show_spline:
+        for i, variable_name in enumerate(variable_names[1:]):
+            plt.plot(
+                X[0][:-1],
+                X_dx[i],
+                "--",
+                label=f"{variable_name} samples spline",
+            )
+        plt.legend()
+        plt.show()
+
+    target = group_without_names(X_dx)
     if add_N:
         for i in X_samples:
             sum = 0

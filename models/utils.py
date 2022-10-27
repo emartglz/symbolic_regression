@@ -98,6 +98,7 @@ def make_experiment(
     time=300,
     n=100000,
     samples=300,
+    show_spline=False,
 ):
     t, *X = integrate_model(model, time, n, X0, *params)
 
@@ -109,12 +110,20 @@ def make_experiment(
         f"{save_to}/data_{name}",
     )
 
+    if show_spline:
+        for i, variable_name in enumerate(variable_names[1:]):
+            plt.plot(t_samples, X_samples[i], label=f"{variable_name} samples")
+
+        for i, variable_name in enumerate(variable_names[1:]):
+            plt.plot(t_samples, X_noise[i], ".", label=f"{variable_name} samples noise")
+
     results = symbolic_regression(
         [t_samples, *X_noise],
         variable_names,
         smoothing_factor,
         seed_g=seed,
         add_N=add_N,
+        show_spline=show_spline,
         **genetic_params,
     )
 
