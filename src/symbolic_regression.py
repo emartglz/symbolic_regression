@@ -8,6 +8,7 @@ def symbolic_regression(
     X,
     variable_names,
     smoothing_factor,
+    add_N=False,
     MAX_GENERATIONS=100,
     seed_g=random(),
     MAX_DEPTH=10,
@@ -29,6 +30,13 @@ def symbolic_regression(
     X_less_last_element = [x[:-1] for x in X]
     X_samples = group_with_names(X_less_last_element, variable_names)
     target = group_without_names(generate_dx(X[0], X[1:], smoothing_factor))
+
+    if add_N:
+        for i in X_samples:
+            sum = 0
+            for j in variable_names[1:]:
+                sum += i[j]
+            i["N"] = sum
 
     ret = genetic_algorithm(
         X_samples,

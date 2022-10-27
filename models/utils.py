@@ -93,6 +93,7 @@ def make_experiment(
     save_to,
     params,
     genetic_params,
+    add_N=False,
     time=300,
     n=100000,
     samples=300,
@@ -121,6 +122,7 @@ def make_experiment(
         variable_names,
         smoothing_factor,
         seed_g=seed,
+        add_N=add_N,
         **genetic_params,
     )
 
@@ -128,11 +130,16 @@ def make_experiment(
     best_system = results["system"]
     save_results(results, f"{save_to}/LV_{name}")
 
-    integrate_gp = lambda X, t: evaluate(
-        best_system,
-        {**{"t": t}, **{v_name: X[i] for i, v_name in enumerate(variable_names[1:])}},
-    )
-    X_gp, _ = integrate.odeint(integrate_gp, X0, t, full_output=True)
+    def evaluate_symbolic_regression(X, t):
+        d = {
+            **{"t": t},
+            **{v_name: X[i] for i, v_name in enumerate(variable_names[1:])},
+        }
+        if add_N:
+            d["N"] = sum(X)
+        return evaluate(best_system, d)
+
+    X_gp, _ = integrate.odeint(evaluate_symbolic_regression, X0, t, full_output=True)
     X_gp = X_gp.T.tolist()
 
     plot_data(
