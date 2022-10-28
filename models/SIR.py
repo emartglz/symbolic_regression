@@ -21,7 +21,8 @@ def try_sir(noise, seed, name, save_to):
     samples = 300
 
     variable_names = ["t", "S", "I", "R"]
-    smoothing_factor = [1] * 3
+    # smoothing_factor = [1] * 3
+    smoothing_factor = [0.1, 0.1, 0.1]
 
     make_experiment(
         sir_dx,
@@ -47,6 +48,7 @@ def try_sir(noise, seed, name, save_to):
         time=time,
         n=n,
         samples=samples,
+        # show_spline=True,
     )
 
 
@@ -61,4 +63,4 @@ if __name__ == "__main__":
 
     for i in range(r):
         print(i)
-        try_sir(noise, i, f"{i}", save_to)
+        try_sir(noise, i, f"SIR_{i}", save_to)
