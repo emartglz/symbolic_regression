@@ -1,3 +1,5 @@
+import csv
+import json
 import numpy as np
 from sympy.plotting.textplot import linspace
 from scipy import integrate
@@ -5,7 +7,9 @@ import matplotlib.pyplot as plt
 from src.symbolic_regression import symbolic_regression
 from src.utils import (
     evaluate,
+    get_results,
     group_with_names,
+    load_samples,
     save_results,
     save_samples,
     separate_samples,
@@ -81,6 +85,103 @@ def plot_data(
         )
         return
     plt.show()
+
+
+def load_oli_params(model, noise, seed):
+    file_name = f"OLIVIA_RESULTS/{model}/pso_results_{noise}"
+
+    with open(f"{file_name}.csv", newline="") as csvfile:
+        reader = csv.reader(csvfile)
+
+        for i, row in enumerate(reader):
+            if i == seed:
+                return [float(x) for x in row[1:]]
+
+
+def generate_experiment_results(
+    model,
+    X0,
+    variable_names,
+    noise,
+    seed,
+    name,
+    save_to,
+    params,
+    add_N,
+    time,
+    n,
+    samples,
+):
+    t, *X = integrate_model(model, time, n, X0, *params)
+
+    results = get_results(f"{save_to}/{name}")
+    best_system = results["system"]
+
+    def evaluate_symbolic_regression(X, t):
+        d = {
+            **{"t": t},
+            **{v_name: X[i] for i, v_name in enumerate(variable_names[1:])},
+        }
+        if add_N:
+            d["N"] = sum(X)
+        return evaluate(best_system, d)
+
+    X_gp, _ = integrate.odeint(evaluate_symbolic_regression, X0, t, full_output=True)
+    X_gp = X_gp.T.tolist()
+
+    t_samples, *X_samples = [take_n_samples_regular(samples, i) for i in [t, *X]]
+
+    t_noise, *X_noise = separate_samples(
+        variable_names, load_samples(f"{save_to}/data_{name}")
+    )
+
+    t_spline, *X_spline = separate_samples(variable_names, results["X"])
+
+    model_name = name.split("_")[0]
+    X_olivia = [[] for i in range(len(X_noise))]
+    X_dx_gp = [[] for i in range(len(X_noise))]
+    for i in range(len(t_noise)):
+        X_to_eval = [x[i] for x in X_noise]
+        temp = model(X_to_eval, t_noise[i], *load_oli_params(model_name, noise, seed))
+        temp2 = evaluate_symbolic_regression(X_to_eval, t_noise[i])
+        for j in range(len(temp)):
+            X_olivia[j].append(temp[j])
+            X_dx_gp[j].append(temp2[j])
+
+    X_gp_samples = [take_n_samples_regular(samples, i) for i in X_gp]
+
+    # con respecto a los datos de la integración del modelo original
+    dif_gp_original = 0
+    # con respecto a los datos con ruido
+    dif_gp_noise = 0
+    # con respecto a los datos del spline
+    dif_gp_spline = 0
+    # con respecto a los datos de olivia
+    dif_gp_olivia = 0
+    for i in range(len(X_spline)):
+        for j in range(len(X_spline[i])):
+            assert t_samples[j] == t_noise[j] == t_spline[j]
+            dif_gp_original += abs(X_gp_samples[i][j] - X_samples[i][j])
+            dif_gp_noise += abs(X_gp_samples[i][j] - X_noise[i][j])
+            dif_gp_spline += abs(X_gp_samples[i][j] - X_spline[i][j])
+            dif_gp_olivia += abs(X_dx_gp[i][j] - X_olivia[i][j])
+
+    dif_gp_original /= len(X_spline) * len(X_spline[0])
+    dif_gp_noise /= len(X_spline) * len(X_spline[0])
+    dif_gp_spline /= len(X_spline) * len(X_spline[0])
+    dif_gp_olivia /= len(X_spline) * len(X_spline[0])
+
+    file_name = f"{save_to}/results_{name}"
+    with open(f"{file_name}.json", "w") as fp:
+        json.dump(
+            {
+                "dif_gp_original": dif_gp_original,
+                "dif_gp_noise": dif_gp_noise,
+                "dif_gp_spline": dif_gp_spline,
+                "dif_gp_olivia": dif_gp_olivia,
+            },
+            fp,
+        )
 
 
 def make_experiment(
@@ -163,4 +264,19 @@ def make_experiment(
         t_symbolic_regression=t,
         samples_symbolic_regression=X_gp,
         name=f"{save_to}/final_plot_{name}.pdf",
+    )
+
+    generate_experiment_results(
+        model,
+        X0,
+        variable_names,
+        noise,
+        seed,
+        name,
+        save_to,
+        params,
+        add_N,
+        time,
+        n,
+        samples,
     )
