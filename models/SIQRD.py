@@ -37,7 +37,8 @@ def try_siqrd(noise, seed, name, save_to):
 
     samples = 300
 
-    smoothing_factor = [1] * 5
+    # smoothing_factor = [1] * 5
+    smoothing_factor = [0.1] * 5
 
     variable_names = ["t", "S", "I", "Q", "R", "D"]
 
@@ -72,6 +73,7 @@ def try_siqrd(noise, seed, name, save_to):
         time=time,
         n=n,
         samples=samples,
+        # show_spline=True,
     )
 
 
@@ -86,4 +88,4 @@ if __name__ == "__main__":
 
     for i in range(r):
         print(i)
-        try_siqrd(noise, i, f"{i}", save_to)
+        try_siqrd(noise, i, f"SIRQD_{i}", save_to)
