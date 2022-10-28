@@ -46,7 +46,8 @@ def try_svveir(noise, seed, name, save_to):
 
     samples = 300
 
-    smoothing_factor = [1] * 6
+    # smoothing_factor = [1] * 6
+    smoothing_factor = [0.1] * 6
 
     variable_names = ["t", "S", "V1", "V2", "E", "I", "R"]
 
@@ -82,6 +83,7 @@ def try_svveir(noise, seed, name, save_to):
         time=time,
         n=n_integration,
         samples=samples,
+        # show_spline=True,
     )
 
 
@@ -96,4 +98,4 @@ if __name__ == "__main__":
 
     for i in range(r):
         print(i)
-        try_svveir(noise, i, f"{i}", save_to)
+        try_svveir(noise, i, f"SVVEIR_{i}", save_to)
