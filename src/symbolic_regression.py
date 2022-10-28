@@ -1,5 +1,5 @@
 from random import randint, random, seed
-from src.aproximation import generate_dx
+from src.aproximation import derivate, smoothing_spline
 from src.genetic_algorithm import genetic_algorithm
 from src.utils import group_with_names, group_without_names
 from matplotlib import pyplot as plt
@@ -29,16 +29,19 @@ def symbolic_regression(
     show_spline=False,
 ):
 
-    X_less_last_element = [x[:-1] for x in X]
-    X_samples = group_with_names(X_less_last_element, variable_names)
+    if smoothing_factor[0] == 1:
+        X_dx = derivate(X[0], X[1:])
+        X_less_last_element = [x[:-1] for x in X]
+    else:
+        X_less_last_element, X_dx = smoothing_spline(X[0], X[1:], smoothing_factor)
 
-    X_dx = generate_dx(X[0], X[1:], smoothing_factor)
+    X_samples = group_with_names(X_less_last_element, variable_names)
 
     if show_spline:
         for i, variable_name in enumerate(variable_names[1:]):
             plt.plot(
-                X[0][:-1],
-                X_dx[i],
+                X_less_last_element[0],
+                X_less_last_element[1:][i],
                 "--",
                 label=f"{variable_name} samples spline",
             )
