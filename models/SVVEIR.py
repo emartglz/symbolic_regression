@@ -46,8 +46,10 @@ def try_svveir(noise, seed, name, save_to):
 
     samples = 300
 
-    # smoothing_factor = [1] * 6
-    smoothing_factor = [0.1] * 6
+    if noise == 0:
+        smoothing_factor = [1] * 6
+    else:
+        smoothing_factor = [0.1] * 6
 
     variable_names = ["t", "S", "V1", "V2", "E", "I", "R"]
 

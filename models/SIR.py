@@ -21,8 +21,10 @@ def try_sir(noise, seed, name, save_to):
     samples = 300
 
     variable_names = ["t", "S", "I", "R"]
-    # smoothing_factor = [1] * 3
-    smoothing_factor = [0.1, 0.1, 0.1]
+    if noise == 0:
+        smoothing_factor = [1] * 3
+    else:
+        smoothing_factor = [0.1, 0.1, 0.1]
 
     make_experiment(
         sir_dx,

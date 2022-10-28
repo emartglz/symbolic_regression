@@ -17,8 +17,10 @@ def try_lotka_volterra(noise, seed, name, save_to):
     X0 = [x1_0, x2_0]
 
     variable_names = ["t", "X", "Y"]
-    # smoothing_factor = [1] * len(variable_names[1:])
-    smoothing_factor = [0.005, 0.1]
+    if noise == 0:
+        smoothing_factor = [1] * len(variable_names[1:])
+    else:
+        smoothing_factor = [0.005, 0.1]
 
     make_experiment(
         lotka_volterra_dx,
@@ -35,12 +37,11 @@ def try_lotka_volterra(noise, seed, name, save_to):
             "POP_SIZE": 100,
             "XOVER_SIZE": 50,
             "MUTATION_SIZE": 50,
-            "RANDOM_SELECTION_SIZE": 20,
+            "RANDOM_SELECTION_SIZE": 10,
             "MAX_DEPTH": 10,
             "REG_STRENGTH": 15,
             # "verbose": True,
         },
-        samples=600,
         # show_spline=True,
     )
 

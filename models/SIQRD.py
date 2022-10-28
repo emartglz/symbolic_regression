@@ -37,8 +37,10 @@ def try_siqrd(noise, seed, name, save_to):
 
     samples = 300
 
-    # smoothing_factor = [1] * 5
-    smoothing_factor = [0.1] * 5
+    if noise == 0:
+        smoothing_factor = [1] * 5
+    else:
+        smoothing_factor = [0.1] * 5
 
     variable_names = ["t", "S", "I", "Q", "R", "D"]
 

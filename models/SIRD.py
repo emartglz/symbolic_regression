@@ -30,8 +30,10 @@ def try_sird(noise, seed, name, save_to, samples=None):
 
     samples = 300
 
-    # smoothing_factor = [1] * 4
-    smoothing_factor = [0.1, 0.1, 0.1, 0.1]
+    if noise == 0:
+        smoothing_factor = [1] * 4
+    else:
+        smoothing_factor = [0.1, 0.1, 0.1, 0.1]
 
     variable_names = ["t", "S", "I", "R", "D"]
 
