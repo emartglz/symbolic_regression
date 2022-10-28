@@ -88,4 +88,4 @@ if __name__ == "__main__":
 
     for i in range(r):
         print(i)
-        try_siqrd(noise, i, f"SIRQD_{i}", save_to)
+        try_siqrd(noise, i, f"SIQRD_{i}", save_to)
