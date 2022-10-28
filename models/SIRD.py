@@ -30,7 +30,8 @@ def try_sird(noise, seed, name, save_to, samples=None):
 
     samples = 300
 
-    smoothing_factor = [1] * 4
+    # smoothing_factor = [1] * 4
+    smoothing_factor = [0.1, 0.1, 0.1, 0.1]
 
     variable_names = ["t", "S", "I", "R", "D"]
 
@@ -51,13 +52,14 @@ def try_sird(noise, seed, name, save_to, samples=None):
             "MUTATION_SIZE": 50,
             "XOVER_SIZE": 50,
             "MAX_DEPTH": 10,
-            "REG_STRENGTH": 30,
+            "REG_STRENGTH": 40,
             "RANDOM_SELECTION_SIZE": 10,
             # "verbose": True,
         },
         add_N=True,
         time=time,
         samples=samples,
+        # show_spline=True,
     )
 
 
@@ -102,4 +104,4 @@ if __name__ == "__main__":
     r = 30
     for i in range(r):
         print(i)
-        try_sird(noise, i, f"{i}", save_to)
+        try_sird(noise, i, f"SIRD_{i}", save_to)
