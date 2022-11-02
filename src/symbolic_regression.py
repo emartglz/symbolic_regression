@@ -52,7 +52,7 @@ def symbolic_regression(
     if add_N:
         for i in X_samples:
             sum = 0
-            for j in variable_names[1:]:
+            for j in add_N:
                 sum += i[j]
             i["N"] = sum
 

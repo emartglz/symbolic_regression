@@ -123,7 +123,10 @@ def generate_experiment_results(
             **{v_name: X[i] for i, v_name in enumerate(variable_names[1:])},
         }
         if add_N:
-            d["N"] = sum(X)
+            sum = 0
+            for j in add_N:
+                sum += d[j]
+            d["N"] = sum
         return evaluate(best_system, d)
 
     X_gp, _ = integrate.odeint(evaluate_symbolic_regression, X0, t, full_output=True)
@@ -158,13 +161,24 @@ def generate_experiment_results(
     dif_gp_spline = 0
     # con respecto a los datos de olivia
     dif_gp_olivia = 0
+    no_count = False
     for i in range(len(X_spline)):
         for j in range(len(X_spline[i])):
+            max_value = 10000
             assert t_samples[j] == t_noise[j] == t_spline[j]
+            if (
+                abs(X_gp_samples[i][j] - X_samples[i][j]) > max_value
+                or abs(X_gp_samples[i][j] - X_noise[i][j]) > max_value
+                or abs(X_gp_samples[i][j] - X_spline[i][j]) > max_value
+            ):
+                no_count = True
+                break
             dif_gp_original += abs(X_gp_samples[i][j] - X_samples[i][j])
             dif_gp_noise += abs(X_gp_samples[i][j] - X_noise[i][j])
             dif_gp_spline += abs(X_gp_samples[i][j] - X_spline[i][j])
             dif_gp_olivia += abs(X_dx_gp[i][j] - X_olivia[i][j])
+        if no_count:
+            break
 
     dif_gp_original /= len(X_spline) * len(X_spline[0])
     dif_gp_noise /= len(X_spline) * len(X_spline[0])
@@ -179,6 +193,7 @@ def generate_experiment_results(
                 "dif_gp_noise": dif_gp_noise,
                 "dif_gp_spline": dif_gp_spline,
                 "dif_gp_olivia": dif_gp_olivia,
+                "no_count": no_count,
             },
             fp,
         )

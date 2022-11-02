@@ -58,7 +58,7 @@ def try_sird(noise, seed, name, save_to, samples=None):
             "RANDOM_SELECTION_SIZE": 10,
             # "verbose": True,
         },
-        add_N=True,
+        add_N=["S", "I", "R"],
         time=time,
         samples=samples,
         # show_spline=True,

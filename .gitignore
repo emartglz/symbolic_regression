@@ -4,3 +4,5 @@
 /fernando
 /RESULTS
 /DATA
+generate_experiment_example_data.py
+generate_spline_example.py
