@@ -46,7 +46,9 @@ def try_svveir(noise, seed, name, save_to):
 
     samples = 300
 
-    if noise == 0:
+    if noise == "original_model":
+        smoothing_factor = None
+    elif noise == 0:
         smoothing_factor = [1] * 6
     else:
         smoothing_factor = [0.1] * 6
@@ -81,7 +83,7 @@ def try_svveir(noise, seed, name, save_to):
             "RANDOM_SELECTION_SIZE": 10,
             # "verbose": True,
         },
-        add_N=True,
+        add_N=["S", "V1", "V2", "E", "I", "R"],
         time=time,
         n=n_integration,
         samples=samples,
@@ -91,7 +93,10 @@ def try_svveir(noise, seed, name, save_to):
 
 if __name__ == "__main__":
     r = 30
-    noise = float(sys.argv[1])
+
+    noise = "original_model"
+    if len(sys.argv) == 2:
+        noise = float(sys.argv[1])
 
     save_to = f"RESULTS/SVVEIR/noise_{noise}"
 

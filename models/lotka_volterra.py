@@ -17,7 +17,9 @@ def try_lotka_volterra(noise, seed, name, save_to):
     X0 = [x1_0, x2_0]
 
     variable_names = ["t", "X", "Y"]
-    if noise == 0:
+    if noise == "original_model":
+        smoothing_factor = None
+    elif noise == 0:
         smoothing_factor = [1] * len(variable_names[1:])
     else:
         smoothing_factor = [0.005, 0.1]
@@ -48,7 +50,10 @@ def try_lotka_volterra(noise, seed, name, save_to):
 
 if __name__ == "__main__":
     r = 30
-    noise = float(sys.argv[1])
+
+    noise = "original_model"
+    if len(sys.argv) == 2:
+        noise = float(sys.argv[1])
 
     save_to = f"RESULTS/LV/noise_{noise}"
 

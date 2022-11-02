@@ -140,16 +140,19 @@ def generate_experiment_results(
 
     t_spline, *X_spline = separate_samples(variable_names, results["X"])
 
-    model_name = name.split("_")[0]
-    X_olivia = [[] for i in range(len(X_noise))]
-    X_dx_gp = [[] for i in range(len(X_noise))]
-    for i in range(len(t_noise)):
-        X_to_eval = [x[i] for x in X_noise]
-        temp = model(X_to_eval, t_noise[i], *load_oli_params(model_name, noise, seed))
-        temp2 = evaluate_symbolic_regression(X_to_eval, t_noise[i])
-        for j in range(len(temp)):
-            X_olivia[j].append(temp[j])
-            X_dx_gp[j].append(temp2[j])
+    if isinstance(noise, float):
+        model_name = name.split("_")[0]
+        X_olivia = [[] for i in range(len(X_noise))]
+        X_dx_gp = [[] for i in range(len(X_noise))]
+        for i in range(len(t_noise)):
+            X_to_eval = [x[i] for x in X_noise]
+            temp = model(
+                X_to_eval, t_noise[i], *load_oli_params(model_name, noise, seed)
+            )
+            temp2 = evaluate_symbolic_regression(X_to_eval, t_noise[i])
+            for j in range(len(temp)):
+                X_olivia[j].append(temp[j])
+                X_dx_gp[j].append(temp2[j])
 
     X_gp_samples = [take_n_samples_regular(samples, i) for i in X_gp]
 
@@ -176,25 +179,31 @@ def generate_experiment_results(
             dif_gp_original += abs(X_gp_samples[i][j] - X_samples[i][j])
             dif_gp_noise += abs(X_gp_samples[i][j] - X_noise[i][j])
             dif_gp_spline += abs(X_gp_samples[i][j] - X_spline[i][j])
-            dif_gp_olivia += abs(X_dx_gp[i][j] - X_olivia[i][j])
+            if isinstance(noise, float):
+                dif_gp_olivia += abs(X_dx_gp[i][j] - X_olivia[i][j])
         if no_count:
             break
 
     dif_gp_original /= len(X_spline) * len(X_spline[0])
     dif_gp_noise /= len(X_spline) * len(X_spline[0])
     dif_gp_spline /= len(X_spline) * len(X_spline[0])
-    dif_gp_olivia /= len(X_spline) * len(X_spline[0])
+    if isinstance(noise, float):
+        dif_gp_olivia /= len(X_spline) * len(X_spline[0])
+
+    dict_to_save = {
+        "dif_gp_original": dif_gp_original,
+        "dif_gp_noise": dif_gp_noise,
+        "dif_gp_spline": dif_gp_spline,
+        "no_count": no_count,
+    }
+
+    if isinstance(noise, float):
+        dict_to_save["dif_gp_olivia"] = dif_gp_olivia
 
     file_name = f"{save_to}/results_{name}"
     with open(f"{file_name}.json", "w") as fp:
         json.dump(
-            {
-                "dif_gp_original": dif_gp_original,
-                "dif_gp_noise": dif_gp_noise,
-                "dif_gp_spline": dif_gp_spline,
-                "dif_gp_olivia": dif_gp_olivia,
-                "no_count": no_count,
-            },
+            dict_to_save,
             fp,
         )
 
@@ -219,7 +228,10 @@ def make_experiment(
     t, *X = integrate_model(model, time, n, X0, *params)
 
     t_samples, *X_samples = [take_n_samples_regular(samples, i) for i in [t, *X]]
-    X_noise = [add_noise(x, noise, seed) for x in X_samples]
+    if isinstance(noise, float):
+        X_noise = [add_noise(x, noise, seed) for x in X_samples]
+    else:
+        X_noise = X_samples
 
     save_samples(
         group_with_names([t_samples, *X_noise], variable_names),
@@ -233,6 +245,10 @@ def make_experiment(
         for i, variable_name in enumerate(variable_names[1:]):
             plt.plot(t_samples, X_noise[i], ".", label=f"{variable_name} samples noise")
 
+    original_model = None
+    if not isinstance(noise, float):
+        original_model = (model, params)
+
     results = symbolic_regression(
         [t_samples, *X_noise],
         variable_names,
@@ -240,6 +256,7 @@ def make_experiment(
         seed_g=seed,
         add_N=add_N,
         show_spline=show_spline,
+        original_model=original_model,
         **genetic_params,
     )
 

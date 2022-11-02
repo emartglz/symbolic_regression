@@ -27,9 +27,29 @@ def symbolic_regression(
     ROUND_SIZE=5,
     verbose=False,
     show_spline=False,
+    original_model=None,
 ):
 
-    if smoothing_factor[0] == 1:
+    if original_model:
+        model = original_model[0]
+        params = original_model[1]
+
+        X_less_last_element = X
+        X_dx = [[] for _ in range(len(X[1:]))]
+
+        t_samples = X[0]
+        for t in range(len(t_samples)):
+            X_variables = []
+
+            for variable in range(len(X[1:])):
+                X_variables.append(X[1:][variable][t])
+
+            X_i = model(X_variables, t_samples[t], *params)
+
+            for variable in range(len(X[1:])):
+                X_dx[variable].append(X_i[variable])
+
+    elif smoothing_factor[0] == 1:
         X_dx = derivate(X[0], X[1:])
         X_less_last_element = [x[:-1] for x in X]
     else:
