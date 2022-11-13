@@ -1,4 +1,3 @@
-import operator
 from random import randint, random, seed
 from math import *
 from src.lineal_optimization import compute_fitness, lineal_optimization_system

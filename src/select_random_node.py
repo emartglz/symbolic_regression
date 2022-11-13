@@ -1,4 +1,4 @@
-from random import random, randint
+from random import randint
 
 
 def flat_tree(selected, depth, MAX_DEPTH):

@@ -1,14 +1,11 @@
 from copy import deepcopy
-from pprint import pprint
 from src.utils import (
     constant_name_assign,
     constant_value_assign,
     evaluate,
     node_count,
-    render_prog,
 )
 import numpy as np
-import math
 
 
 def compute_fitness(program, prediction, target, REG_STRENGTH):

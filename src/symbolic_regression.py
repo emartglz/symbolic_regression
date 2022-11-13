@@ -1,4 +1,4 @@
-from random import randint, random, seed
+from random import random
 from src.aproximation import derivate, smoothing_spline
 from src.genetic_algorithm import genetic_algorithm
 from src.utils import group_with_names, group_without_names
