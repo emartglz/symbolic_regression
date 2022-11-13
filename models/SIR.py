@@ -10,10 +10,10 @@ def sir_dx(X, t, a, b):
 
 
 def try_sir(noise, seed, name, save_to):
-    a = 0.0003
+    a = 0.3
     b = 0.1
 
-    X0 = [700, 300, 0]
+    X0 = [0.7, 0.3, 0]
 
     time = 20
     n = 10000
