@@ -15,6 +15,9 @@ from src.utils import (
     separate_samples,
     take_n_samples_regular,
 )
+import warnings
+
+warnings.filterwarnings("error")
 
 
 def integrate_model(model, time, n, X0, *args):
@@ -129,8 +132,23 @@ def generate_experiment_results(
             d["N"] = sum
         return evaluate(best_system, d)
 
-    X_gp, _ = integrate.odeint(evaluate_symbolic_regression, X0, t, full_output=True)
-    X_gp = X_gp.T.tolist()
+    try:
+        X_gp, _ = integrate.odeint(
+            evaluate_symbolic_regression, X0, t, full_output=True
+        )
+        X_gp = X_gp.T.tolist()
+    except Warning:
+        dict_to_save = {
+            "no_count": True,
+        }
+
+        file_name = f"{save_to}/results_{name}"
+        with open(f"{file_name}.json", "w") as fp:
+            json.dump(
+                dict_to_save,
+                fp,
+            )
+        return
 
     t_samples, *X_samples = [take_n_samples_regular(samples, i) for i in [t, *X]]
 
@@ -162,8 +180,6 @@ def generate_experiment_results(
     dif_gp_noise = 0
     # con respecto a los datos del spline
     dif_gp_spline = 0
-    # con respecto a los datos de olivia
-    dif_gp_olivia = 0
     no_count = False
     for i in range(len(X_spline)):
         for j in range(len(X_spline[i])):
@@ -179,16 +195,12 @@ def generate_experiment_results(
             dif_gp_original += abs(X_gp_samples[i][j] - X_samples[i][j])
             dif_gp_noise += abs(X_gp_samples[i][j] - X_noise[i][j])
             dif_gp_spline += abs(X_gp_samples[i][j] - X_spline[i][j])
-            if isinstance(noise, float):
-                dif_gp_olivia += abs(X_dx_gp[i][j] - X_olivia[i][j])
         if no_count:
             break
 
     dif_gp_original /= len(X_spline) * len(X_spline[0])
     dif_gp_noise /= len(X_spline) * len(X_spline[0])
     dif_gp_spline /= len(X_spline) * len(X_spline[0])
-    if isinstance(noise, float):
-        dif_gp_olivia /= len(X_spline) * len(X_spline[0])
 
     dict_to_save = {
         "dif_gp_original": dif_gp_original,
@@ -196,9 +208,6 @@ def generate_experiment_results(
         "dif_gp_spline": dif_gp_spline,
         "no_count": no_count,
     }
-
-    if isinstance(noise, float):
-        dict_to_save["dif_gp_olivia"] = dif_gp_olivia
 
     file_name = f"{save_to}/results_{name}"
     with open(f"{file_name}.json", "w") as fp:
