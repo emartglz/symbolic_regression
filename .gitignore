@@ -8,3 +8,5 @@ generate_experiment_example_data.py
 generate_spline_example.py
 /RESULTS_WITH_FEATURES
 /RESULTS_WITH_NO_FEATURES
+/RESULTS_WITH_ADDITIVE_NOISE
+/RESULTS_WITH_MULTIPLICATIVE_NOISE

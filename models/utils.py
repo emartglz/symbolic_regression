@@ -30,10 +30,15 @@ def integrate_model(model, time, n, X0, *args):
     return (t, *variables)
 
 
-def add_noise(target, max_noise, seed=None):
+def add_noise(target, max_noise, seed=None, noise_type="proportional"):
     rng = np.random.default_rng(seed)
 
-    result = [(y + y * max_noise * rng.standard_normal(1)).item() for y in target]
+    if noise_type == "multiplicative":
+        result = [(y * rng.exponential(1, 1)).item() for y in target]
+    elif noise_type == "additive":
+        result = [(y + max_noise * rng.standard_normal(1)).item() for y in target]
+    else:
+        result = [(y + y * max_noise * rng.standard_normal(1)).item() for y in target]
 
     return result
 
@@ -88,17 +93,6 @@ def plot_data(
         )
         return
     plt.show()
-
-
-def load_oli_params(model, noise, seed):
-    file_name = f"OLIVIA_RESULTS/{model}/pso_results_{noise}"
-
-    with open(f"{file_name}.csv", newline="") as csvfile:
-        reader = csv.reader(csvfile)
-
-        for i, row in enumerate(reader):
-            if i == seed:
-                return [float(x) for x in row[1:]]
 
 
 def generate_experiment_results(
@@ -157,20 +151,6 @@ def generate_experiment_results(
     )
 
     t_spline, *X_spline = separate_samples(variable_names, results["X"])
-
-    if isinstance(noise, float):
-        model_name = name.split("_")[0]
-        X_olivia = [[] for i in range(len(X_noise))]
-        X_dx_gp = [[] for i in range(len(X_noise))]
-        for i in range(len(t_noise)):
-            X_to_eval = [x[i] for x in X_noise]
-            temp = model(
-                X_to_eval, t_noise[i], *load_oli_params(model_name, noise, seed)
-            )
-            temp2 = evaluate_symbolic_regression(X_to_eval, t_noise[i])
-            for j in range(len(temp)):
-                X_olivia[j].append(temp[j])
-                X_dx_gp[j].append(temp2[j])
 
     X_gp_samples = [take_n_samples_regular(samples, i) for i in X_gp]
 
@@ -233,12 +213,13 @@ def make_experiment(
     n=100000,
     samples=300,
     show_spline=False,
+    noise_type="proportional",
 ):
     t, *X = integrate_model(model, time, n, X0, *params)
 
     t_samples, *X_samples = [take_n_samples_regular(samples, i) for i in [t, *X]]
     if isinstance(noise, float):
-        X_noise = [add_noise(x, noise, seed) for x in X_samples]
+        X_noise = [add_noise(x, noise, seed, noise_type) for x in X_samples]
     else:
         X_noise = X_samples
 
