@@ -6,6 +6,7 @@ import types
 import numpy as np
 from src.constants import ZERO
 import csv
+import os
 
 
 def constant_name_assign(selected, number=0, constant=[]):
@@ -188,6 +189,9 @@ def get_results(file_name):
 def save_samples(X, file_name):
     if not len(X):
         return
+    
+    directory = os.path.dirname(f"{file_name}.csv")
+    os.makedirs(directory, exist_ok=True)
 
     with open(f"{file_name}.csv", "w", newline="") as csvfile:
         fieldnames = list(X[0].keys())
